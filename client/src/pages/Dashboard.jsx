@@ -1,29 +1,17 @@
 import React, { useState } from 'react';
 import { 
-  User, 
-  LayoutDashboard, 
   Calendar, 
   FileText, 
   DollarSign, 
-  Settings, 
-  LogOut, 
-  ChevronRight,
+  CheckCircle,
   Menu,
-  X,
-  CheckCircle
+  ChevronRight
 } from 'lucide-react';
+import Sidebar from '../components/Sidebar';
 
 const Dashboard = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState('Dashboard');
-
-  const menuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard },
-    { name: 'Attendance', icon: Calendar },
-    { name: 'Leave', icon: FileText },
-    { name: 'Payslips', icon: DollarSign },
-    { name: 'Settings', icon: Settings },
-  ];
+   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+   const [activeMenu, setActiveMenu] = useState('Dashboard');
 
   const statsCards = [
     { title: 'Days Present', value: '20', icon: Calendar, accentColor: 'border-l-blue-500' },
@@ -35,73 +23,13 @@ const Dashboard = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      {/* Top Section */}
-      <div className="flex items-center space-x-3 mb-8 pb-6 border-b border-white/10">
-        <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-500 rounded-lg flex items-center justify-center shadow-lg">
-          <User className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <h2 className="text-white font-bold text-lg leading-tight">Employee MS</h2>
-          <p className="text-white/60 text-xs">Management System</p>
-        </div>
-      </div>
-
-      {/* User Card */}
-      <div className="bg-white/10 rounded-xl p-4 mb-8 backdrop-blur-sm">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
-            J
-          </div>
-          <div>
-            <h3 className="text-white font-semibold">John Doe</h3>
-            <p className="text-white/60 text-sm">Employee</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1">
-        <ul className="space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeMenu === item.name;
-            return (
-              <li key={item.name}>
-                <button
-                  onClick={() => setActiveMenu(item.name)}
-                  className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
-                    isActive
-                      ? 'bg-purple-600 text-white shadow-md'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'group-hover:text-white'}`} />
-                  <span className="font-medium">{item.name}</span>
-                  {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-
-      {/* Logout Button */}
-      <button className="mt-auto flex items-center space-x-3 px-4 py-2.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200">
-        <LogOut className="w-5 h-5" />
-        <span className="font-medium">Log out</span>
-      </button>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-gray-50 font-sans antialiased">
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 bg-white shadow-sm z-20 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-500 rounded-lg flex items-center justify-center">
-            <User className="w-4 h-4 text-white" />
+            <Menu className="w-4 h-4 text-white" />
           </div>
           <span className="font-bold text-gray-800">Employee MS</span>
         </div>
@@ -114,34 +42,14 @@ const Dashboard = () => {
         </button>
       </div>
 
-      {/* Mobile Sidebar Drawer */}
-      {isSidebarOpen && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-            onClick={toggleSidebar}
-          />
-          <div className="fixed inset-y-0 left-0 w-72 bg-gradient-to-br from-[#0B1120] via-[#111827] to-[#0F172A] shadow-2xl z-40 transform transition-transform duration-300">
-            <div className="p-6 h-full overflow-y-auto">
-              <button
-                onClick={toggleSidebar}
-                className="absolute top-4 right-4 p-2 rounded-lg hover:bg-white/10 text-white/70"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <SidebarContent />
-            </div>
-          </div>
-        </>
-      )}
-
       <div className="flex">
-        {/* Desktop Sidebar */}
-        <aside className="hidden lg:block w-72 bg-gradient-to-br from-[#0B1120] via-[#111827] to-[#0F172A] min-h-screen shadow-xl sticky top-0">
-          <div className="p-6 h-full">
-            <SidebarContent />
-          </div>
-        </aside>
+        {/* Sidebar Component */}
+        {/* <Sidebar 
+          activeMenu={activeMenu}
+          setActiveMenu={setActiveMenu}
+          isOpen={isSidebarOpen}
+          onClose={toggleSidebar}
+        /> */}
 
         {/* Main Content */}
         <main className="flex-1 lg:ml-0">
