@@ -11,7 +11,7 @@ import {
 import LoginLeftSide from "../components/LoginLeftSide";
 import { Link } from "react-router-dom";
 
-const PortalSelection = () => {
+const LoginLanding = () => {
   const portals = [
     {
       to: "/login/admin",
@@ -115,4 +115,4 @@ const PortalSelection = () => {
   );
 };
 
-export default PortalSelection;
+export default LoginLanding;
