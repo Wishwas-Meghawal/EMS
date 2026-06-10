@@ -30,7 +30,7 @@ const Sidebar = ({ activeMenu, setActiveMenu, isOpen, onClose }) => {
     setMobileOpen(false);
   }, [pathname]);
 
-  const role = "" || "EMPLOYEE";
+  const role = "ADMIN" || "EMPLOYEE";
 
   const menuItems = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
