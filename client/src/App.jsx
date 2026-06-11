@@ -4,13 +4,13 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import LoginLanding from "./pages/LoginLanding";
 import Layout from "./pages/Layout";
 import Dashboard from "./pages/Dashboard";
-import { Settings } from "lucide-react";
 import Payslips from "./pages/Payslips";
 import Leave from "./pages/Leave";
 import Attendance from "./pages/Attendance";
 import Employee from "./pages/Employee";
 import PrintPayslip from "./pages/PrintPayslip";
 import LoginForm from "./components/LoginForm";
+import Settings from "./pages/Settings";
 
 const App = () => {
   return (
