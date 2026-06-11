@@ -8,17 +8,7 @@ const LeaveHistory = ({ leaves, isAdmin, onUpdate }) => {
     setProcessing(id);
   };
 
-  // Get day type badge styles
-  const getDayTypeBadgeStyles = (dayType) => {
-    switch (dayType) {
-      case "Full Day":
-        return "bg-green-50 text-green-700 ring-1 ring-green-200/50";
-      case "Half Day":
-        return "bg-orange-50 text-orange-700 ring-1 ring-orange-200/50";
-      default:
-        return "bg-gray-50 text-gray-700 ring-1 ring-gray-200/50";
-    }
-  };
+ 
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
