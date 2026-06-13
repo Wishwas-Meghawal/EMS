@@ -1,12 +1,9 @@
-
+import Employee from "../models/Employee.js";
+import LeaveApplication from "../models/LeaveApplication.js";
 
 // Create leave
-
-import Employee from "../models/Employee";
-import LeaveApplication from "../models/LeaveApplication";
-
 //POST / api/leaves
-export const createLeave = async (res, res) => {
+export const createLeave = async (req, res) => {
   try {
     const session = req.session;
 
@@ -82,7 +79,7 @@ export const createLeave = async (res, res) => {
 
 //Get  leave
 //GET / api/leaves
-export const getLeaves = async (res, res) => {
+export const getLeaves = async (req, res) => {
   try {
     const session = req.session;
     const isAdmin = session.role === "ADMIN";
@@ -135,7 +132,7 @@ export const getLeaves = async (res, res) => {
 
 //Update  leave
 //PATCH / api/leaves/:id
-export const updateLeaveStatus = async (res, res) => {
+export const updateLeaveStatus = async (req, res) => {
   try {
     const { status } = req.body;
     if (!["APPROVED", "REJECTED", "PENDING"].includes(status)) {
