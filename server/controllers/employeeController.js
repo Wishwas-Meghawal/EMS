@@ -1,4 +1,4 @@
-const Employee = require("../models/Employee.js");
+import Employee from "../models/Employee.js";
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
 import { hash } from "crypto";
@@ -74,7 +74,7 @@ export const createEmployee = async (req, res) => {
   
     if (!email || !password || !employeeName) {
       return res.status(400).json({
-        error: "Missing required fields";
+        error: "Missing required fields"
       })
     }
 
@@ -180,7 +180,7 @@ export const updateEmployee = async (req, res) => {
     if (!employee) {
       return (
         res.status(404).json({
-          error: "Employee Not Found";
+          error: "Employee Not Found"
         })
       )
     }

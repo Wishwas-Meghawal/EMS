@@ -1,5 +1,6 @@
-const mongoose = require("mongoose");
-const { DEPARTMENTS } = require("../constants/department.js");
+import mongoose from "mongoose";
+import { DEPARTMENTS } from "../constants/department.js";
+
 
 const employeeSchema = new mongoose.Schema(
   {
@@ -106,4 +107,5 @@ const employeeSchema = new mongoose.Schema(
 
 const Employee = mongoose.model("Employee", employeeSchema);
 
-module.exports = Employee;
+
+export default Employee;
