@@ -1,8 +1,8 @@
+import Attendance from "../models/Attendance.js";
 
 
 //Clock in/out for employee
 
-import Attendance from "../models/Attendance";
 
 // POST / api/attendance
 export const clockOut = async (req, res) => {
