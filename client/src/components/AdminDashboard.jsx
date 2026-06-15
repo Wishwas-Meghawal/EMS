@@ -94,29 +94,6 @@ const AdminDashboard = ({ data }) => {
                 );
               })}
             </div>
-
-           
-
-            {/* Additional Content Area for Demo */}
-            {/* <div className="bg-white rounded-xl shadow-sm p-6 mt-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                Recent Activity
-              </h3>
-              <p className="text-gray-500">
-                Your attendance for today has been recorded. You have 2 pending
-                leave requests awaiting approval.
-              </p>
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">
-                    Next payroll: June 30, 2026
-                  </span>
-                  <button className="text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1">
-                    View Details <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div> */}
           </div>
         </main>
 

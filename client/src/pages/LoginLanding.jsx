@@ -9,34 +9,35 @@ import {
   UserCircle,
 } from "lucide-react";
 import LoginLeftSide from "../components/LoginLeftSide";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import Loading from "../components/Loading";
+import { useAuth } from "../context/AuthContext";
 
 const LoginLanding = () => {
-  const portals = [
-    {
-      to: "/login/admin",
-      title: "Admin Portal",
-      description:
-        "Manage employees, oversee operations, and access administrative controls.",
-      icon: Building2,
-      role: "admin",
-    },
-    {
-      to: "/login/employee",
-      title: "Employee Portal",
-      description:
-        "View attendance, request leave, access payslips, and manage your profile.",
-      icon: UserCircle,
-      role: "employee",
-    },
-  ];
 
-  const handlePortalSelect = (portal) => {
-    // Handle portal selection navigation
-    console.log(`Selected portal: ${portal.title}`);
-    // You can implement navigation logic here
-    // Example: window.location.href = portal.path;
-  };
+  const {user, loading} = useAuth()
+
+  if(loading) return <Loading/>
+  //if(!user) return <Navigate to='/'/>
+
+    const portals = [
+      {
+        to: "/login/admin",
+        title: "Admin Portal",
+        description:
+          "Manage employees, oversee operations, and access administrative controls.",
+        icon: Building2,
+        role: "admin",
+      },
+      {
+        to: "/login/employee",
+        title: "Employee Portal",
+        description:
+          "View attendance, request leave, access payslips, and manage your profile.",
+        icon: UserCircle,
+        role: "employee",
+      },
+    ];
 
   return (
     <div className="h-screen bg-gray-50 font-sans antialiased overflow-hidden">
