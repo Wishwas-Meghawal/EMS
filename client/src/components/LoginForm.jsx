@@ -1,35 +1,62 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Eye, EyeOff, Briefcase, Users, Clock, Shield, Loader2Icon,  } from 'lucide-react';
-import LoginLeftSide from './LoginLeftSide';
-import { Link } from 'react-router-dom';
+import React, { useState } from "react";
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  Briefcase,
+  Users,
+  Clock,
+  Shield,
+  Loader2Icon,
+} from "lucide-react";
+import LoginLeftSide from "./LoginLeftSide";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import toast from "react-hot-toast";
 
-const LoginForm = ({role, title, subtitle}) => {
+const LoginForm = ({ role, title, subtitle }) => {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   //const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSubmit = async(e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Handle login logic here
-    console.log('Login attempt with:', { email, password, rememberMe });
+    setError("");
+    setLoading(true);
+
+    try {
+      await login(email, password, role);
+      navigate("/dashboard");
+    } catch (error) {
+      toast.error(
+        error.response?.data?.error || error.message || "Login failed",
+      );
+    } finally{
+      setLoading(false)
+    }
   };
 
   return (
+    
     <div className="min-h-screen bg-gray-50 font-sans antialiased">
+      
       <div className="flex flex-col lg:flex-row min-h-screen">
-        
         {/* Left Side - Branding Section */}
-        <LoginLeftSide/>
+        <LoginLeftSide />
 
         {/* Right Side - Login Form Section */}
         <div className="lg:w-1/2 w-full flex items-center justify-center p-6 sm:p-8 lg:p-12 xl:p-16 bg-white">
           <div className="w-full max-w-md">
             {/* Back Link */}
             <div className="mb-8">
-              <Link to="/login" 
+              <Link
+                to="/login"
                 onClick={() => window.history.back()}
                 className="inline-flex items-center text-gray-500 hover:text-gray-700 transition-colors group"
               >
@@ -44,20 +71,21 @@ const LoginForm = ({role, title, subtitle}) => {
               <p className="text-gray-500">{subtitle}</p>
             </div>
 
-            {
-              error && (
-                <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
-                  <div className='w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0'/>
-                  {error}
-                </div>
-              )
-            }
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+                <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                {error}
+              </div>
+            )}
 
             {/* Login Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Email Field */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Email address
                 </label>
                 <input
@@ -73,7 +101,10 @@ const LoginForm = ({role, title, subtitle}) => {
 
               {/* Password Field */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Password
                 </label>
                 <div className="relative">
@@ -90,9 +121,15 @@ const LoginForm = ({role, title, subtitle}) => {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -122,10 +159,9 @@ const LoginForm = ({role, title, subtitle}) => {
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold py-3 px-4 rounded-lg hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                {
-                  loading && <Loader2Icon
-                  className='animate-spin h-4 w-4 mr-2' />
-                }
+                {loading && (
+                  <Loader2Icon className="animate-spin h-4 w-4 mr-2" />
+                )}
                 Sign in
               </button>
             </form>
@@ -134,7 +170,9 @@ const LoginForm = ({role, title, subtitle}) => {
             <div className="mt-8 pt-6 border-t border-gray-100">
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-xs text-gray-500 text-center">
-                  Demo credentials: <span className="font-mono">john@example.com</span> / <span className="font-mono">any password</span>
+                  Demo credentials:{" "}
+                  <span className="font-mono">john@example.com</span> /{" "}
+                  <span className="font-mono">any password</span>
                 </p>
               </div>
             </div>

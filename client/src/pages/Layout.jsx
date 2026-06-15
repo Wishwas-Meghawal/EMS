@@ -1,8 +1,14 @@
 import React, { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import { useAuth } from "../context/AuthContext.jsx";
+import Loading from "../components/Loading.jsx";
 
 const Layout = () => {
+  const {user, loading} = useAuth()
+
+  if(loading) return <Loading/>
+  if(!user) return <Navigate to='/login'/>
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
       <Sidebar/>
