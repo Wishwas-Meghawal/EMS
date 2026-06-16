@@ -63,13 +63,13 @@ export const getDashboard = async (req, res) => {
           employeeId: employee._id,
           date: {
             $gte: new Date(
-              new Date(today.getFullYear(),today.getMonth(), 1)
+              new Date(today.getFullYear(), today.getMonth(), 1)
             ),
             $lt: new Date(
-              new Date(today.getFullYear(),today.getMonth() + 1, 1)
+              new Date(today.getFullYear(), today.getMonth() + 1, 1)
             ),
           },
-        }).
+        }),
         LeaveApplication.countDocuments({
           employeeId: employee._id,
           status: "PENDING",
@@ -80,18 +80,19 @@ export const getDashboard = async (req, res) => {
           createdAt: -1
         }).lean(),
       ])
-       return res.json({
+      return res.json({
         role: "EMPLOYEE",
-        employee: {...employee, id: employee._id.toString()},
+        employee: { ...employee, id: employee._id.toString() },
         currentMonthAttendance,
         pendingLeaves,
-        latestpayslip: latestpayslip ? {...latestpayslip, id:latestpayslip._id.toString()} :null
-       })
+        latestpayslip: latestpayslip ? { ...latestpayslip, id: latestpayslip._id.toString() } : null
+      })
     }
   } catch (error) {
-    console.error("Dashboard error:" , error)
+    console.error("Dashboard Error:", error);
+
     return res.status(500).json({
-      error: "Failed"
+      error: error.message,
     });
   }
 };

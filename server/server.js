@@ -12,6 +12,7 @@ import payslipRouter from './routes/payslipsRoutes.js';
 import dashboardRouter from './routes/dashboardRoutes.js';
 import { serve } from "inngest/express";
 import { inngest, functions } from "./inngest/index.js"
+import path from "path";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -19,7 +20,7 @@ const PORT = process.env.PORT || 4000;
 //Middleware
 app.use(cors());
 app.use(express.json());
-app.use(multer().none());
+
 
 
 // Route
@@ -36,8 +37,8 @@ app.use("/api/dashboard",dashboardRouter);
 
 app.use("/api/inngest", serve({ client: inngest, functions }));
 
-
-
+// Serve uploaded profile photos statically
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 await connectDB();
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT }`);

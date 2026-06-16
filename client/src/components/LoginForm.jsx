@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import LoginLeftSide from "./LoginLeftSide";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext.jsx";
 import toast from "react-hot-toast";
 
 const LoginForm = ({ role, title, subtitle }) => {

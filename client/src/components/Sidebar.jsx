@@ -9,19 +9,24 @@ import {
   LogOut,
   ChevronRight,
   X,
+  Loader2,
 } from "lucide-react";
 import { href, Link, useLocation } from "react-router-dom";
 import { dummyProfileData } from "../assets/assets";
+import { useAuth } from "../context/AuthContext";
+import api from "../api/axios";
 
 const Sidebar = ({ activeMenu, setActiveMenu, isOpen, onClose }) => {
-  
-
   const { pathname } = useLocation();
   const [userName, setUserName] = useState("");
   const [mobileOpen, setMobileOpen] = useState("");
 
+  const { user, loading, logout } = useAuth();
+
   useEffect(() => {
-    setUserName(dummyProfileData.firstName + " " + dummyProfileData.lastName);
+    api.get("/profile").then(({ data }) => {
+      if (data.employeeName) setUserName(`${data.employeeName}`.trim());
+    });
   }, []);
 
   // Close mobile sidebar on route change
@@ -30,21 +35,22 @@ const Sidebar = ({ activeMenu, setActiveMenu, isOpen, onClose }) => {
     setMobileOpen(false);
   }, [pathname]);
 
-  const role = "" || "EMPLOYEE";
+  const role = user?.role;
 
   const menuItems = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-    role === "ADMIN" ?
-    { name: "Employees", icon: User, href: "/employee" }:
-    { name: "Attendance", icon: Calendar, href: "/attendance" },
+    role === "ADMIN"
+      ? { name: "Employees", icon: User, href: "/employee" }
+      : { name: "Attendance", icon: Calendar, href: "/attendance" },
     { name: "Leave", icon: FileText, href: "/leave" },
     { name: "Payslips", icon: DollarSign, href: "/payslips" },
     { name: "Settings", icon: Settings, href: "/settings" },
   ];
 
-  const handleLogout = () =>{
+  const handleLogout = () => {
+    logout();
     window.location.href = "/login";
-  }
+  };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -70,7 +76,9 @@ const Sidebar = ({ activeMenu, setActiveMenu, isOpen, onClose }) => {
             </div>
             <div>
               <h3 className="text-white font-semibold">{userName}</h3>
-            <p className="text-white/60 text-sm">{role === "ADMIN" ? "Administrator" : "Employee"}</p>
+              <p className="text-white/60 text-sm">
+                {role === "ADMIN" ? "Administrator" : "Employee"}
+              </p>
             </div>
           </div>
         </div>
@@ -79,33 +87,44 @@ const Sidebar = ({ activeMenu, setActiveMenu, isOpen, onClose }) => {
       {/* Navigation */}
       <nav className="flex-1">
         <ul className="space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname.startsWith(item.href);
-            return (
-              <li key={item.name}>
-                <Link
-                  to={item.href}
-                  className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
-                    isActive
-                      ? "bg-purple-600 text-white shadow-md"
-                      : "text-white/70 hover:text-white hover:bg-white/10"
-                  }`}
-                >
-                  <Icon
-                    className={`w-5 h-5 ${isActive ? "text-white" : "group-hover:text-white"}`}
-                  />
-                  <span className="font-medium">{item.name}</span>
-                  {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
-                </Link>
-              </li>
-            );
-          })}
+          {loading ? (
+            <div className="px-3 py-3 flex items-center gap-2 text-slte-500">
+              <Loader2 className="animate-spin w-4 h-4"/>
+              <span className="text-sm">Loading...</span>
+
+            </div>
+          ) : (
+            menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname.startsWith(item.href);
+              return (
+                <li key={item.name}>
+                  <Link
+                    to={item.href}
+                    className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
+                      isActive
+                        ? "bg-purple-600 text-white shadow-md"
+                        : "text-white/70 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <Icon
+                      className={`w-5 h-5 ${isActive ? "text-white" : "group-hover:text-white"}`}
+                    />
+                    <span className="font-medium">{item.name}</span>
+                    {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+                  </Link>
+                </li>
+              );
+            })
+          )}
         </ul>
       </nav>
 
       {/* Logout Button */}
-      <button onClick={handleLogout} className="mt-auto flex items-center space-x-3 px-4 py-2.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200 cursor-pointer">
+      <button
+        onClick={handleLogout}
+        className="mt-auto flex items-center space-x-3 px-4 py-2.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200 cursor-pointer"
+      >
         <LogOut className="w-5 h-5" />
         <span className="font-medium">Log out</span>
       </button>

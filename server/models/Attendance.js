@@ -2,68 +2,55 @@ import mongoose from "mongoose";
 
 const attendanceSchema = new mongoose.Schema(
   {
-    // Employee Reference
     employeeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Employee",
-      required: true
+      required: true,
     },
 
-    // Attendance Date
-    attendanceDate: {
+    date: {
       type: Date,
-       required: true
+      required: true,
     },
 
-    // Check-In Time
-    checkInTime: {
+    checkIn: {
       type: Date,
-      default: "",
+      default: null,
     },
 
-    // Check-Out Time
-    checkOutTime: {
+    checkOut: {
       type: Date,
-      default: "",
+      default: null,
     },
 
-    // Attendance Status
     status: {
       type: String,
-      required: [true, "Attendance status is required"],
-      enum: {
-        values: [
-          "PRESENT",
-          "ABSENT",
-          "LATE",
-          "LEAVE",
-        ],
-        message: "Invalid attendance status",
-      },
+      enum: ["PRESENT", "ABSENT", "LATE", "LEAVE"],
       default: "PRESENT",
     },
-    workingHours:{
+
+    workingHours: {
       type: Number,
-      default: null
+      default: null,
     },
-    datType: {
-      type:String,
+
+    dayType: {
+      type: String,
       enum: [
         "Full Day",
         "Three Quarter Day",
         "Half Day",
-        "Sort Day",
-        null
+        "Short Day",
+        null,
       ],
-      default: null
-    }
+      default: null,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-// Prevent multiple attendance records for the same employee on the same date
 attendanceSchema.index(
   {
     employeeId: 1,
@@ -74,6 +61,9 @@ attendanceSchema.index(
   }
 );
 
-const Attendance = mongoose.model("Attendance", attendanceSchema);
+const Attendance = mongoose.model(
+  "Attendance",
+  attendanceSchema
+);
 
 export default Attendance;

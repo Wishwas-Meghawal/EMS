@@ -1,18 +1,13 @@
 import Employee from "../models/Employee.js";
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
-import { hash } from "crypto";
-import { error } from "console";
 
-
-// Get Employee
-//GET/ api/ employees
+// GET /api/employees
 export const getEmployees = async (req, res) => {
   try {
     const { department } = req.query;
     const where = {};
     if (department) where.department = department;
-
 
     const employees = await Employee.find(where)
       .sort({ createdAt: -1 })
@@ -22,8 +17,11 @@ export const getEmployees = async (req, res) => {
     const result = employees.map((emp) => ({
       ...emp,
       id: emp._id.toString(),
-      user: emp.userId ? { email: emp.userId.email, role: emp.userId.role } : null
-    }))
+      user: emp.userId
+        ? { email: emp.userId.email, role: emp.userId.role }
+        : null,
+    }));
+
     return res.json(result);
   } catch (error) {
     return res.status(500).json({
@@ -34,257 +32,137 @@ export const getEmployees = async (req, res) => {
   }
 };
 
-// Create Employee
-//POST /api/employee
+// POST /api/employees
 export const createEmployee = async (req, res) => {
   try {
     const {
-      employeeName,
-      employeeCode,
-      email,
-      password,
-      phone,
-      department,
-      position,
-      joinDate,
-      basicSalary,
-      allowances,
-      deductions,
-      employeeStatus,
-      bio,
+      employeeName, employeeCode, email, role, password,
+      phone, department, position, joinDate,
+      basicSalary, allowances, deductions, bio,
     } = req.body;
 
-    // ── Duplicate checks ──────────────────────────────────────────
-    const existingCode = await Employee.findOne({ employeeCode, isDeleted: false });
-    if (existingCode) {
-      return res.status(400).json({
-        success: false,
-        message: "Employee code already exists",
-      });
+    if (!email || !password || !employeeName) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
+
+    const existingCode = await Employee.findOne({ employeeCode, isDeleted: false });
+    if (existingCode)
+      return res.status(400).json({ success: false, message: "Employee code already exists" });
 
     const existingEmail = await Employee.findOne({ email, isDeleted: false });
-    if (existingEmail) {
-      return res.status(400).json({
-        success: false,
-        message: "Email already exists",
-      });
-    }
-
-  
-    if (!email || !password || !employeeName) {
-      return res.status(400).json({
-        error: "Missing required fields"
-      })
-    }
+    if (existingEmail)
+      return res.status(400).json({ success: false, message: "Email already exists" });
 
     const hashedPass = await bcrypt.hash(password, 10);
-    const user = await User.create({
-      email,
-      password: hashedPass,
-      role: role || "EMPLOYEE"
-    })
+    const user = await User.create({ email, password: hashedPass, role: role || "EMPLOYEE" });
 
-    // ── Create employee ───────────────────────────────────────────
+    // ✅ Save file path if uploaded
+    const profilePhoto = req.file ? req.file.path.replace(/\\/g, "/") : null;
+
     const employee = await Employee.create({
       userId: user._id,
-      employeeName,
-      employeeCode,
-      email,
-      phone,
+      employeeName, employeeCode, email, phone,
       department: department || "Engineering",
       position,
       joinDate: new Date(joinDate),
       basicSalary: Number(basicSalary) || 0,
-      allowances: Number(basicSalary) || 0,
-      deductions: Number(basicSalary) || 0,
+      allowances: Number(allowances) || 0,
+      deductions: Number(deductions) || 0,
       bio: bio || "",
+      profilePhoto,   // ✅
     });
 
-    return res.status(201).json({
-      success: true,
-      message: "Employee created successfully",
-      data: employee,
-    });
-
+    return res.status(201).json({ success: true, message: "Employee created successfully", data: employee });
   } catch (error) {
-    // Mongoose validation errors
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map((e) => e.message);
-      return res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        errors,
-      });
+      return res.status(400).json({ success: false, message: "Validation failed", errors });
     }
-
-    // Mongoose duplicate key error
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
-      return res.status(400).json({
-        success: false,
-        message: `${field} already exists`,
-      });
+      return res.status(400).json({ success: false, message: `${field} already exists` });
     }
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to create employee",
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, message: "Failed to create employee", error: error.message });
   }
 };
 
-
-// Update Employee
-//PUT /api/employee/:id
+// PUT /api/employees/:id
 export const updateEmployee = async (req, res) => {
   try {
     const { id } = req.params;
     const {
-      employeeName,
-      employeeCode,
-      email,
-      password,
-      phone,
-      department,
-      position,
-      basicSalary,
-      allowances,
-      deductions,
-      bio,
-      employeeStatus
+      employeeName, employeeCode, email, role, password,
+      phone, department, position, joinDate,
+      basicSalary, allowances, deductions, bio, employeeStatus,
     } = req.body;
 
-    // ── Duplicate checks ──────────────────────────────────────────
-    const existingCode = await Employee.findOne({ employeeCode, isDeleted: false });
-    if (existingCode) {
-      return res.status(400).json({
-        success: false,
-        message: "Employee code already exists",
-      });
-    }
+    const existingCode = await Employee.findOne({ employeeCode, isDeleted: false, _id: { $ne: id } });
+    if (existingCode)
+      return res.status(400).json({ success: false, message: "Employee code already exists" });
 
-    const existingEmail = await Employee.findOne({ email, isDeleted: false });
-    if (existingEmail) {
-      return res.status(400).json({
-        success: false,
-        message: "Email already exists",
-      });
-    }
-
-
-
+    const existingEmail = await Employee.findOne({ email, isDeleted: false, _id: { $ne: id } });
+    if (existingEmail)
+      return res.status(400).json({ success: false, message: "Email already exists" });
 
     const employee = await Employee.findById(id);
-    if (!employee) {
-      return (
-        res.status(404).json({
-          error: "Employee Not Found"
-        })
-      )
-    }
+    if (!employee) return res.status(404).json({ error: "Employee Not Found" });
 
+    // ✅ Use new photo if uploaded, otherwise keep existing
+    const profilePhoto = req.file
+      ? req.file.path.replace(/\\/g, "/")
+      : employee.profilePhoto;
 
-
-    // ── Update employee ───────────────────────────────────────────
     await Employee.findByIdAndUpdate(id, {
-      employeeName,
-      employeeCode,
-      email,
-      phone,
+      employeeName, employeeCode, email, phone,
       department: department || "Engineering",
       position,
       joinDate: new Date(joinDate),
       basicSalary: Number(basicSalary) || 0,
-      allowances: Number(basicSalary) || 0,
-      deductions: Number(basicSalary) || 0,
-      //profilePhoto,
+      allowances: Number(allowances) || 0,
+      deductions: Number(deductions) || 0,
       employeeStatus: employeeStatus || "ACTIVE",
       bio: bio || "",
+      profilePhoto,   // ✅
     });
 
-    // Update user record
-    const userUpdate = { email }
+    const userUpdate = { email };
     if (role) userUpdate.role = role;
     if (password) userUpdate.password = await bcrypt.hash(password, 10);
-    await User.findByIdAndUpdate(employee.userid, userUpdate)
+    await User.findByIdAndUpdate(employee.userId, userUpdate);
 
-
-
-    return res.json({
-      success: true,
-    });
-
+    return res.json({ success: true });
   } catch (error) {
-    // Mongoose validation errors
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map((e) => e.message);
-      return res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        errors,
-      });
+      return res.status(400).json({ success: false, message: "Validation failed", errors });
     }
-
-    // Mongoose duplicate key error
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
-      return res.status(400).json({
-        success: false,
-        message: `${field} already exists`,
-      });
+      return res.status(400).json({ success: false, message: `${field} already exists` });
     }
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update employee",
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, message: "Failed to update employee", error: error.message });
   }
 };
 
-// Delete Employee
-//DELETE /api/employee/:id
-
+// DELETE /api/employees/:id
 export const deleteEmployee = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const employee = await Employee.findOne({
-      _id: id,
-      isDeleted: false,
-    });
-
+    const employee = await Employee.findOne({ _id: id, isDeleted: false });
     if (!employee) {
-      return res.status(404).json({
-        success: false,
-        message: "Employee not found",
-      });
+      return res.status(404).json({ success: false, message: "Employee not found" });
     }
 
     employee.isDeleted = true;
     employee.employeeStatus = "INACTIVE";
-
     await employee.save();
 
-    return res.status(200).json({
-      success: true,
-      message: "Employee deleted successfully",
-    });
-
+    return res.status(200).json({ success: true, message: "Employee deleted successfully" });
   } catch (error) {
     if (error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid employee ID format",
-      });
+      return res.status(400).json({ success: false, message: "Invalid employee ID format" });
     }
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to delete employee",
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, message: "Failed to delete employee", error: error.message });
   }
 };
