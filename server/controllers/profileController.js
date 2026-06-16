@@ -1,58 +1,50 @@
 import Employee from "../models/Employee.js";
 
-
-// GET profile
-
-
-//GET / api/profile
+// GET /api/profile
 export const getProfile = async (req, res) => {
   try {
     const session = req.session;
-    const employee = await Employee.findOne({ userId: session.userId })
+    const employee = await Employee.findOne({ userId: session.userId });
 
     if (!employee) {
-      // Authenticated user is not an employee - return admin profile
-
-      return res.jaon({
-        firstNamer: "Admin",
-        lastName: "",
+      // Admin user — not an employee
+      return res.json({
+        employeeName: "Admin",  // ✅ typo fix
         email: session.email,
-      })
+        role: session.role,
+      });
     }
-    return res.json(employee)
+
+    return res.json(employee);
   } catch (error) {
-    return res.status(500).json({ 
-      error: "Failed to fetch profile" 
-    })
+    return res.status(500).json({ error: "Failed to fetch profile" });
   }
-}
+};
 
-
-//Update Profile
-//Put /api/profile
+// PUT /api/profile
 export const updateProfile = async (req, res) => {
   try {
     const session = req.session;
-    const employee = await Employee.findOne({ userId: session.userId })
+    const employee = await Employee.findOne({ userId: session.userId });
 
-    if(!employee) return res.status(404).json({
-      error: "Employee not found"
-    });
-    if(employee.isDeleted){
+    if (!employee) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+
+    // ✅ isDeleted check pehle, return baad mein
+    if (employee.isDeleted) {
       return res.status(403).json({
-        error: "Your account is deactivated. You cnanot update your profile",
-      })
-      await Employee.findByIdAndUpdate(employee._id,{
-        bio:req.body.bio
-      })
-      return res.josn({
-        success: true
+        error: "Your account is deactivated. You cannot update your profile",
       });
     }
-  } catch (error) {
-     return res.status(500).json({ 
-      error: "Failed to update profile" 
-    });
-  }
-}
 
+    // ✅ Ab update hoga — pehle nahi hota tha
+    await Employee.findByIdAndUpdate(employee._id, {
+      bio: req.body.bio,
+    });
+
+    return res.json({ success: true }); // ✅ josn → json
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to update profile" });
+  }
+};

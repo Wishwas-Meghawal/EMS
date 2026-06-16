@@ -5,8 +5,8 @@ import { clockOut, getAttendance } from "../controllers/attendanceController.js"
 
 const attendanceRouter = Router();
 
-attendanceRouter.get('/',protect, clockOut);
-attendanceRouter.post('/',protect, getAttendance);
+attendanceRouter.get('/',protect, getAttendance);
+attendanceRouter.post('/',protect, clockOut);
 
 export default attendanceRouter;
 

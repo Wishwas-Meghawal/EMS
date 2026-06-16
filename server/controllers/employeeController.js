@@ -53,26 +53,50 @@ export const createEmployee = async (req, res) => {
     if (existingEmail)
       return res.status(400).json({ success: false, message: "Email already exists" });
 
+    // ✅ User bhi pehle check karo — orphan User hoga to bhi pakad lega
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: "Email already exists" });
+    }
+
     const hashedPass = await bcrypt.hash(password, 10);
-    const user = await User.create({ email, password: hashedPass, role: role || "EMPLOYEE" });
 
-    // ✅ Save file path if uploaded
-    const profilePhoto = req.file ? req.file.path.replace(/\\/g, "/") : null;
-
-    const employee = await Employee.create({
-      userId: user._id,
-      employeeName, employeeCode, email, phone,
-      department: department || "Engineering",
-      position,
-      joinDate: new Date(joinDate),
-      basicSalary: Number(basicSalary) || 0,
-      allowances: Number(allowances) || 0,
-      deductions: Number(deductions) || 0,
-      bio: bio || "",
-      profilePhoto,   // ✅
+    // ✅ User create karo
+    const user = await User.create({
+      email,
+      password: hashedPass,
+      role: role || "EMPLOYEE"
     });
 
-    return res.status(201).json({ success: true, message: "Employee created successfully", data: employee });
+    const profilePhoto = req.file ? req.file.path.replace(/\\/g, "/") : null;
+
+    let employee;
+    try {
+      // ✅ Employee create karo
+      employee = await Employee.create({
+        userId: user._id,
+        employeeName, employeeCode, email, phone,
+        department: department || "Engineering",
+        position,
+        joinDate: new Date(joinDate),
+        basicSalary: Number(basicSalary) || 0,
+        allowances: Number(allowances) || 0,
+        deductions: Number(deductions) || 0,
+        bio: bio || "",
+        profilePhoto,
+      });
+    } catch (empError) {
+      // ✅ Employee create fail hua to User bhi delete karo — orphan nahi rehna chahiye
+      await User.findByIdAndDelete(user._id);
+      throw empError; // catch block mein jayega
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Employee created successfully",
+      data: employee,
+    });
+
   } catch (error) {
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map((e) => e.message);
@@ -82,7 +106,11 @@ export const createEmployee = async (req, res) => {
       const field = Object.keys(error.keyValue)[0];
       return res.status(400).json({ success: false, message: `${field} already exists` });
     }
-    return res.status(500).json({ success: false, message: "Failed to create employee", error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to create employee",
+      error: error.message
+    });
   }
 };
 
