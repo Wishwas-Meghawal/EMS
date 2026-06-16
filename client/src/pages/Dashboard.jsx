@@ -12,14 +12,14 @@ const Dashboard = () => {
   //  const [activeMenu, setActiveMenu] = useState('Dashboard');
 
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(null);
+  const [loading, setLoading] = useState(true);
 
 
   useEffect(()=>{
     api.get('/dashboard').then((res)=>{
       setData(res.data)
     }).catch((err)=>{
-      toast.error(err.response?.error || err?.message)
+      toast.error(err.response?.data?.error || err?.message)
     }).finally(()=>{
       setLoading(false)
     })
