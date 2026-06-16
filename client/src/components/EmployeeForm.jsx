@@ -1,20 +1,125 @@
-import { ChevronDown, Loader2Icon, Plus, X } from "lucide-react";
-import React, { useState } from "react";
+import { Loader2Icon, Plus, X, Upload } from "lucide-react";
+import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DEPARTMENTS } from "../assets/assets";
+import toast from "react-hot-toast";
+import api from "../api/axios";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const isEditMode = !!initialData;
-  const handelSubmit = async (e) => {
-    e.prevetnDefault();
+
+  // ✅ Photo state
+  const fileInputRef = useRef(null);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(
+    initialData?.profilePhoto ? `${API_URL}/${initialData.profilePhoto}` : null,
+  );
+  const [photoError, setPhotoError] = useState("");
+
+  // ✅ Handle photo selection with validation
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    setPhotoError("");
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError("Photo must be under 5MB");
+      e.target.value = "";
+      return;
+    }
+    const allowed = ["image/jpeg", "image/jpg", "image/png"];
+    if (!allowed.includes(file.type)) {
+      setPhotoError("Only JPG, JPEG, PNG files are allowed");
+      e.target.value = "";
+      return;
+    }
+
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file)); // ✅ live preview
   };
+
+  // ✅ Remove selected photo
+  const removePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(
+      initialData?.profilePhoto
+        ? `${API_URL}/${initialData.profilePhoto}`
+        : null,
+    );
+    setPhotoError("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handelSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // ✅ Manually FormData banao — e.currentTarget mat use karo
+      // Kyunki e.currentTarget file input bhi pick karta hai = duplicate field
+      const formData = new FormData();
+
+      // Text fields manually append karo
+      const fields = [
+        "employeeName",
+        "employeeCode",
+        "email",
+        "phone",
+        "department",
+        "position",
+        "joinDate",
+        "basicSalary",
+        "allowances",
+        "deductions",
+        "bio",
+        "role",
+        "employeeStatus",
+      ];
+
+      fields.forEach((field) => {
+        const el = e.currentTarget.elements[field];
+        if (el && el.value !== "") {
+          formData.append(field, el.value);
+        }
+      });
+
+      // Password — sirf append karo agar filled ho
+      const pwd = e.currentTarget.elements["password"]?.value;
+      if (pwd) formData.append("password", pwd);
+
+      // ✅ Photo — sirf ek baar, controlled state se
+      if (photoFile) {
+        formData.append("profilePhoto", photoFile);
+      }
+
+      const url = isEditMode ? `/employee/${initialData._id}` : "/employee";
+      const method = isEditMode ? "put" : "post";
+
+      await api[method](url, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      toast.success(isEditMode ? "Employee updated!" : "Employee created!");
+      onSuccess ? onSuccess() : navigate("/employee");
+    } catch (error) {
+      toast.error(
+        error.response?.data?.error ||
+          error.response?.data?.message ||
+          error.message,
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <form className="space-y-8" onSubmit={handelSubmit}>
-      {/* Two-Column Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-        {/* 1. Employee Name */}
+        {/* Employee Name */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-slate-700">
             Employee Name <span className="text-red-500">*</span>
@@ -23,14 +128,14 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
             type="text"
             name="employeeName"
             required
-            defaultValue={initialData?.firstName}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm 
-                       focus:ring-2 focus:ring-purple-500 focus:border-transparent 
+            defaultValue={initialData?.employeeName}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm
+                       focus:ring-2 focus:ring-purple-500 focus:border-transparent
                        transition-all duration-200 outline-none text-slate-700 placeholder:text-slate-400"
           />
         </div>
 
-        {/* 2. Employee Code */}
+        {/* Employee Code */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-slate-700">
             Employee Code
@@ -40,13 +145,14 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
             name="employeeCode"
             placeholder="EMP001"
             maxLength={10}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm 
-                       focus:ring-2 focus:ring-purple-500 focus:border-transparent 
+            defaultValue={initialData?.employeeCode}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm
+                       focus:ring-2 focus:ring-purple-500 focus:border-transparent
                        transition-all duration-200 outline-none text-slate-700 placeholder:text-slate-400"
           />
         </div>
 
-        {/* 3. Email Address */}
+        {/* Email */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-slate-700">
             Email Address <span className="text-red-500">*</span>
@@ -56,12 +162,14 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
             name="email"
             defaultValue={initialData?.email}
             required
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm 
-                       focus:ring-2 focus:ring-purple-500 focus:border-transparent 
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm
+                       focus:ring-2 focus:ring-purple-500 focus:border-transparent
                        transition-all duration-200 outline-none text-slate-700 placeholder:text-slate-400"
           />
         </div>
-        {!isEditMode && (
+
+        {/* Password */}
+        {!isEditMode ? (
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700">
               Temporary Password <span className="text-red-500">*</span>
@@ -70,38 +178,45 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
               type="password"
               name="password"
               required
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm 
-                       focus:ring-2 focus:ring-purple-500 focus:border-transparent 
-                       transition-all duration-200 outline-none text-slate-700 placeholder:text-slate-400"
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm
+                         focus:ring-2 focus:ring-purple-500 focus:border-transparent
+                         transition-all duration-200 outline-none text-slate-700"
             />
-          </div> 
-        )}
-        {isEditMode && (
+          </div>
+        ) : (
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700">
-              Change Password 
+              Change Password
             </label>
             <input
               type="password"
               name="password"
               placeholder="Leave blank to keep current"
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm 
-                       focus:ring-2 focus:ring-purple-500 focus:border-transparent 
-                       transition-all duration-200 outline-none text-slate-700 placeholder:text-slate-400"
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm
+                         focus:ring-2 focus:ring-purple-500 focus:border-transparent
+                         transition-all duration-200 outline-none text-slate-700 placeholder:text-slate-400"
             />
-          </div> 
+          </div>
         )}
-        <div>
+
+        {/* Role */}
+        <div className="space-y-1.5">
           <label className="block text-sm font-medium text-slate-700">
-              System Role
+            System Role
           </label>
-          <select name="role" defaultValue={initialData?.user?.role || "EMPLOYEE"}>
-            <option value="EMPLOYEE">employee</option>
+          <select
+            name="role"
+            defaultValue={initialData?.user?.role || "EMPLOYEE"}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm
+                       focus:ring-2 focus:ring-purple-500 focus:border-transparent
+                       transition-all duration-200 outline-none text-slate-700"
+          >
+            <option value="EMPLOYEE">Employee</option>
             <option value="ADMIN">Admin</option>
           </select>
         </div>
 
-        {/* 4. Mobile Number */}
+        {/* Phone */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-slate-700">
             Mobile Number
@@ -110,49 +225,48 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
             type="tel"
             name="phone"
             defaultValue={initialData?.phone}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm 
-                       focus:ring-2 focus:ring-purple-500 focus:border-transparent 
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm
+                       focus:ring-2 focus:ring-purple-500 focus:border-transparent
                        transition-all duration-200 outline-none text-slate-700 placeholder:text-slate-400"
           />
         </div>
 
-        {/* 5. Department (Select) */}
+        {/* Department */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-slate-700">
             Department
           </label>
-          <div className="relative">
-            <select
-              name="department"
-              defaultValue={initialData?.department || ""}
-            >
-              <option value="">Select Department</option>
-              {DEPARTMENTS.map((deptName) => (
-                <option key={deptName} value={deptName}>
-                  {deptName}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            name="department"
+            defaultValue={initialData?.department || ""}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm
+                       focus:ring-2 focus:ring-purple-500 focus:border-transparent
+                       transition-all duration-200 outline-none text-slate-700"
+          >
+            <option value="">Select Department</option>
+            {DEPARTMENTS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* 6. Designation (Select) */}
+        {/* Position */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-slate-700">
             Designation
           </label>
-          <div className="relative">
-            <input
-              name="position"
-              defaultValue={initialData?.position}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm 
-                       focus:ring-2 focus:ring-purple-500 focus:border-transparent 
+          <input
+            name="position"
+            defaultValue={initialData?.position}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm
+                       focus:ring-2 focus:ring-purple-500 focus:border-transparent
                        transition-all duration-200 outline-none text-slate-700 placeholder:text-slate-400"
-            ></input>
-          </div>
+          />
         </div>
 
-        {/* 7. Date of Joining */}
+        {/* Join Date */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-slate-700">
             Date of Joining
@@ -166,44 +280,44 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
                 ? new Date(initialData.joinDate).toISOString().split("T")[0]
                 : ""
             }
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm 
-                       focus:ring-2 focus:ring-purple-500 focus:border-transparent 
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm
+                       focus:ring-2 focus:ring-purple-500 focus:border-transparent
                        transition-all duration-200 outline-none text-slate-700"
           />
         </div>
 
-        {/* 8. Salary */}
+        {/* Salary */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-slate-700">
             Salary
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <span className="text-slate-500 font-medium">₹</span>
-            </div>
+            <span className="absolute inset-y-0 left-3 flex items-center text-slate-500 font-medium">
+              ₹
+            </span>
             <input
               type="number"
               name="basicSalary"
               defaultValue={initialData?.basicSalary || 0}
-              className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm 
-                         focus:ring-2 focus:ring-purple-500 focus:border-transparent 
-                         transition-all duration-200 outline-none text-slate-700 placeholder:text-slate-400"
+              className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm
+                         focus:ring-2 focus:ring-purple-500 focus:border-transparent
+                         transition-all duration-200 outline-none text-slate-700"
             />
           </div>
         </div>
 
+        {/* Status — edit mode only */}
         {isEditMode && (
-          <div>
+          <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700">
               Status
             </label>
             <select
-              type="number"
-              name="employmentStatus"
-              defaultValue={initialData?.employmentStatus}
-              className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm 
-                         focus:ring-2 focus:ring-purple-500 focus:border-transparent 
-                         transition-all duration-200 outline-none text-slate-700 placeholder:text-slate-400"
+              name="employeeStatus"
+              defaultValue={initialData?.employeeStatus || "ACTIVE"}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm
+                         focus:ring-2 focus:ring-purple-500 focus:border-transparent
+                         transition-all duration-200 outline-none text-slate-700"
             >
               <option value="ACTIVE">ACTIVE</option>
               <option value="INACTIVE">INACTIVE</option>
@@ -211,77 +325,93 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
           </div>
         )}
 
-        {/* 9. Profile Photo Upload (Spans both columns on desktop for better layout) */}
-        <div className="md:col-span-2 space-y-1.5">
+        {/* ✅ Profile Photo Upload with Live Preview */}
+        <div className="md:col-span-2 space-y-3">
           <label className="block text-sm font-medium text-slate-700">
             Profile Photo
           </label>
-          // Upload Box
-          <div
-            className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-slate-300 rounded-xl 
-                            bg-slate-50/30 hover:bg-slate-50 transition-colors duration-200"
-          >
-            <div className="space-y-2 text-center">
-              {/* <Upload
-                              className="mx-auto h-10 w-10 text-slate-400"
-                              strokeWidth={1.5}
-                            /> */}
-              <div className="flex text-sm text-slate-600">
-                <label
-                  htmlFor="profile-photo-upload"
-                  className="relative cursor-pointer rounded-md font-medium text-indigo-600 
-                               hover:text-purple-600 focus-within:outline-none focus-within:ring-2 
-                               focus-within:ring-purple-500 transition-colors"
-                >
-                  <span>Click to upload image</span>
-                  <input
-                    id="profile-photo-upload"
-                    name="profile-photo"
-                    type="file"
-                    accept="image/jpeg, image/png, image/jpg"
-                    className="sr-only"
-                  />
-                </label>
-              </div>
-              <p className="text-xs text-slate-500">JPG, PNG, JPEG up to 5MB</p>
-            </div>
-          </div>
-          // Image Preview
-          <div className="mt-1 flex items-center space-x-5 p-4 border border-slate-200 rounded-xl bg-slate-50/50">
-            <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-purple-100 shadow-sm">
-              <img
-                alt="Profile preview"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-slate-700 truncate"></p>
-              <p className="text-xs text-slate-500">(1) KB</p>
-            </div>
-            <button
-              type="button"
-              className="p-1.5 rounded-full bg-white border border-slate-200 text-slate-500 
-                           hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
 
-        {/* 10. Active Status Toggle */}
-        <div className="md:col-span-2 flex items-center justify-between py-2 border-t border-slate-100 pt-4 mt-2">
-          <div className="space-y-0.5">
-            <label className="text-sm font-medium text-slate-700">
-              Employee Active Status
-            </label>
-            <p className="text-xs text-slate-500">
-              Enable or disable employee access
+          {/* Upload trigger — hidden input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png"
+            onChange={handlePhotoChange}
+            className="hidden"
+          />
+
+          {!photoPreview ? (
+            /* Drop zone — shown when no photo selected */
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="flex flex-col items-center justify-center gap-2 px-6 py-8 border-2
+                         border-dashed border-slate-300 rounded-xl bg-slate-50/30
+                         hover:bg-indigo-50/40 hover:border-indigo-400 transition-all
+                         duration-200 cursor-pointer group"
+            >
+              <div
+                className="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-indigo-100
+                              flex items-center justify-center transition-colors"
+              >
+                <Upload className="w-5 h-5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-indigo-600 group-hover:text-indigo-700">
+                  Click to upload photo
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  JPG, JPEG, PNG — max 5MB
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* ✅ Live preview — shown after photo selected */
+            <div className="flex items-center gap-4 p-4 border border-slate-200 rounded-xl bg-slate-50/50">
+              <div
+                className="relative w-16 h-16 shrink-0 rounded-full overflow-hidden
+                              ring-2 ring-purple-200 shadow-sm"
+              >
+                <img
+                  src={photoPreview}
+                  alt="Profile preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-700 truncate">
+                  {photoFile?.name || "Current photo"}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {photoFile
+                    ? `${(photoFile.size / 1024).toFixed(1)} KB`
+                    : "Uploaded"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-xs text-indigo-500 hover:text-indigo-700 mt-1 underline"
+                >
+                  Change photo
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={removePhoto}
+                className="p-1.5 rounded-full bg-white border border-slate-200 text-slate-400
+                           hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all"
+                title="Remove photo"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* ✅ Validation error */}
+          {photoError && (
+            <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
+              <X className="w-3 h-3" /> {photoError}
             </p>
-          </div>
-          <button
-            type="button"
-            className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-          ></button>
+          )}
         </div>
       </div>
 
@@ -289,33 +419,29 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
       <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-slate-200">
         <button
           type="button"
-          onClick={()=>(onCancle ? onCancle(): navigate(-1))}
-          className="w-full sm:w-auto px-6 py-2.5 rounded-xl border border-slate-300 bg-white 
-                     text-slate-700 font-medium shadow-sm 
-                     hover:bg-slate-50 hover:border-slate-400 
-                     transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          onClick={() => (onCancle ? onCancle() : navigate(-1))}
+          className="w-full sm:w-auto px-6 py-2.5 rounded-xl border border-slate-300 bg-white
+                     text-slate-700 font-medium shadow-sm hover:bg-slate-50 hover:border-slate-400
+                     transition-all duration-200"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 
-                     text-white font-medium shadow-md 
-                     hover:shadow-lg hover:from-purple-700 hover:to-indigo-700 
-                     transform hover:-translate-y-0.5 
-                     transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
-                     flex items-center justify-center gap-2"
+          className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600
+                     to-indigo-600 text-white font-medium shadow-md hover:shadow-lg
+                     hover:from-purple-700 hover:to-indigo-700 transform hover:-translate-y-0.5
+                     transition-all duration-200 flex items-center justify-center gap-2
+                     disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
         >
-          <Plus className="w-4 h-4" />
-          {
-            loading && <Loader2Icon className="w-4 h-4 mr-2 animate-spin"/>
-          }
-          {
-            isEditMode ? "Updat Employee" : "Create Employee"
-          }
-          
-          
+          {loading ? (
+            <Loader2Icon className="w-4 h-4 animate-spin" />
+          ) : (
+            <Plus className="w-4 h-4" />
+          )}
+          {isEditMode ? "Update Employee" : "Create Employee"}{" "}
+          {/* ✅ typo fixed */}
         </button>
       </div>
     </form>

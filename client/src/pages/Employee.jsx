@@ -12,6 +12,7 @@ import {
 import { dummyEmployeeData, DEPARTMENTS } from "../assets/assets";
 import EmployeeCard from "../components/EmployeeCard";
 import EmployeeForm from "../components/EmployeeForm";
+import api from "../api/axios";
 
 const Employees = () => {
   const [employees, setEmployees] = useState([]);
@@ -22,15 +23,18 @@ const Employees = () => {
   const [showCreateModel, setShowCreateModel] = useState(false);
 
   const fetchEmployees = useCallback(async () => {
-    setLoading(true);
-    setEmployees(
-      dummyEmployeeData.filter((emp) =>
-        selectedDept ? emp.department === selectedDept : emp,
-      ),
-    );
-    setTimeout(() => {
+    try {
+      const url = selectedDept
+        ? `/employee?department=${selectedDept}`
+        : "/employee";
+      const res = await api.get(url);
+      setEmployees(res.data);
+    } catch (error) {
+      console.log("Failed to fetch employees");
+    } finally {
       setLoading(false);
-    }, 1000); // Replace with actual API call
+    }
+    // Replace with actual API call
   }, [selectedDept]);
 
   useEffect(() => {
@@ -38,54 +42,10 @@ const Employees = () => {
   }, [fetchEmployees]);
 
   const filtered = employees.filter((emp) =>
-    `${emp.firstName} ${emp.lastName} ${emp.position}`
+    `${emp.employeeName} ${emp.position}`
       .toLowerCase()
       .includes(search.toLowerCase()),
   );
-
-  // Static dummy data for design only
-  const employeess = [
-    {
-      name: "David Michael",
-      designation: "Associate Business Support",
-      department: "IT Support",
-    },
-    {
-      name: "Alex Matthew",
-      designation: "Software Developer",
-      department: "Engineering",
-    },
-    {
-      name: "John Doe",
-      designation: "Senior Software Developer",
-      department: "Engineering",
-    },
-    {
-      name: "Sarah Johnson",
-      designation: "Marketing Manager",
-      department: "Marketing",
-    },
-    {
-      name: "Emily Brown",
-      designation: "UI/UX Designer",
-      department: "Designing",
-    },
-    {
-      name: "Michael Lee",
-      designation: "Support Specialist",
-      department: "Support - Online",
-    },
-  ];
-
-  const departments = [
-    "All Departments",
-    "IT Support",
-    "Engineering",
-    "Marketing",
-    "Designing",
-    "Support - Offline",
-    "Support - Online",
-  ];
 
   // Get initials from name
   const getInitials = (name) => {
@@ -168,13 +128,13 @@ const Employees = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.length === 0 ? (
-              <P className="col-span-full text-center py-16  text-slate-400 bg-white rounded-2xl boder border-dashed border-slate-200">
+              <p className="col-span-full text-center py-16  text-slate-400 bg-white rounded-2xl boder border-dashed border-slate-200">
                 No employee found{" "}
-              </P>
+              </p>
             ) : (
               filtered.map((emp) => (
                 <EmployeeCard
-                  key={emp.id}
+                  key={emp._id}
                   employee={emp}
                   onDelete={fetchEmployees}
                   onEdit={(e) => setEditEmployee(e)}

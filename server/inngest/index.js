@@ -188,7 +188,7 @@ const attendanceReminderCron = inngest.createFunction(
         );
 
         return {
-          startUTC: startUTC.toISOString(), endUTC: endUTC.toDateString()
+          startUTC: startUTC.toISOString(), endUTC: endUTC.toISOString()
         };
       })
     // Step 2: Get all active , non-dleted employees
@@ -197,7 +197,7 @@ const attendanceReminderCron = inngest.createFunction(
       async () => {
         const employees = await Employee.find({
           isDeleted: false,
-          employmentStatus: "ACTIVE",
+          employmenStatus: "ACTIVE",
         }).lean();
 
         return employees.map((e) => ({
@@ -235,7 +235,7 @@ const attendanceReminderCron = inngest.createFunction(
       "get-checked-in-ids",
       async () => {
         const attendances = await Attendance.find({
-          date: {
+          attendanceDate: {
             $gte: new Date(today.startUTC),
             $lt: new Date(today.endUTC),
           },

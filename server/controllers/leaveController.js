@@ -67,19 +67,16 @@ export const createLeave = async (req, res) => {
       status: "PENDING",
     })
 
-     await inngest.send({
-            name: "leave/pending",
-            data:{
-              LeaveApplicationId: leave._id,
-            }
-          })
+    await inngest.send({
+      name: "leave/pending",
+      data: {
+        leaveApplicationId: leave._id,
+      }
+    })
 
-    return res.json({
-      success: true,
-      date: leave
-    });
+    return res.json({ success: true, data: leave });
   } catch (error) {
-    return res.statue(500).json({
+    return res.status(500).json({
       error: "Failed"
     });
   }
@@ -112,27 +109,31 @@ export const getLeaves = async (req, res) => {
         };
       });
       return res.json({ data })
-    } else {
+    }
+    else {
       const employee = await Employee.findOne({
         userId: session.userId
       }).lean();
+
       if (!employee) {
-        return res.status(404).json({
-          error: "Not Found"
-        });
-        const leaves = await LeaveApplication.find({
-          employeeId: employee._id
-        }).sort({ createdAt: -1 });
-        return res.json({
-          data: leaves,
-          employee: {
-            ...employee, id: employee._id.toString()
-          }
-        })
+        return res.status(404).json({ error: "Not Found" });
       }
+
+      // ✅ Now outside the !employee guard — actually runs
+      const leaves = await LeaveApplication.find({
+        employeeId: employee._id
+      }).sort({ createdAt: -1 });
+
+      return res.json({
+        data: leaves,
+        employee: {
+          ...employee,
+          id: employee._id.toString()
+        }
+      });
     }
   } catch (error) {
-    return res.statue(500).json({
+    return res.status(500).json({
       error: "Failed"
     });
   }

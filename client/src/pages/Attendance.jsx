@@ -5,6 +5,8 @@ import { CheckIcon } from "lucide-react";
 import CheckInButton from "../components/attendance/CheckInButton";
 import AttendanceStat from "../components/attendance/AttendanceStats";
 import AttendanceHistory from "../components/attendance/AttendanceHistory";
+import api from "../api/axios";
+import toast from "react-hot-toast";
 
 const Attendance = () => {
   const [history, setHistory] = useState([]);
@@ -12,10 +14,21 @@ const Attendance = () => {
   const [isDeleted, setIsDeleted] = useState(false);
 
   const fetchData = useCallback(async () => {
-    setHistory(dummyAttendanceData);
-    setTimeout(() => {
+    try {
+      const res = await api.get("/attendance");
+
+      console.log(res.data);
+
+      setHistory(Array.isArray(res.data.data) ? res.data.data : []);
+
+      if (res.data.employee?.isDeleted) {
+        setIsDeleted(true);
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.error || error?.message);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   }, []);
 
   useEffect(() => {
@@ -26,9 +39,11 @@ const Attendance = () => {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayRecord = history.find(
-    (r) => new Date(r.date).toDateString() === today.toDateString(),
-  );
+  const todayRecord = Array.isArray(history)
+    ? history.find(
+        (r) => new Date(r.date).toDateString() === today.toDateString(),
+      )
+    : null;
 
   return (
     <div className="animate-fade-in space-y-8">

@@ -4,6 +4,11 @@ import { DEPARTMENTS } from "../constants/department.js";
 
 const employeeSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     employeeName: {
       type: String,
       required: true,
@@ -39,7 +44,7 @@ const employeeSchema = new mongoose.Schema(
     department: {
       type: String,
       required: [true, "Department is required"],
-      enum:DEPARTMENTS,
+      enum: DEPARTMENTS,
     },
 
     position: {
@@ -92,9 +97,9 @@ const employeeSchema = new mongoose.Schema(
     },
     isDeleted: {
       type: Boolean,
-      default : false
+      default: false
     },
-    bio:{
+    bio: {
       type: String,
       default: ""
     },
