@@ -10,13 +10,13 @@ const ProfileForm = ({ initialData, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    setLoading(true); 
     setLoading(true);
     setError("")
     setMessage("")
     const formData = new FormData(e.currentTarget);
+    const bio = formData.get("bio");
     try {
-      await api.post("/profile", formData)
+      await api.post("/profile", { bio })
       setMessage("Profile updated successfully")
       onSuccess?.()
     } catch (error) {
@@ -56,7 +56,7 @@ const ProfileForm = ({ initialData, onSuccess }) => {
 
             <input
               disabled
-              value={`${initialData.firstName} ${initialData.lastName}`}
+              value={initialData.employeeName || ""}
               className="bg-slate-50 text-slate-400 cursor-not-allowed"
             />
           </div>

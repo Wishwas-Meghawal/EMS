@@ -47,16 +47,28 @@ export const createEmployee = async (req, res) => {
 
     const existingCode = await Employee.findOne({ employeeCode, isDeleted: false });
     if (existingCode)
-      return res.status(400).json({ success: false, message: "Employee code already exists" });
+      return res.status(400).json({
+        success: false,
+        message: "Employee code already exists",
+        errors: [{ field: "employeeCode", message: "Employee code already exists" }],
+      });
 
     const existingEmail = await Employee.findOne({ email, isDeleted: false });
     if (existingEmail)
-      return res.status(400).json({ success: false, message: "Email already exists" });
+      return res.status(400).json({
+        success: false,
+        message: "Email already exists",
+        errors: [{ field: "email", message: "Email already exists" }],
+      });
 
     // ✅ User bhi pehle check karo — orphan User hoga to bhi pakad lega
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ success: false, message: "Email already exists" });
+      return res.status(400).json({
+        success: false,
+        message: "Email already exists",
+        errors: [{ field: "email", message: "Email already exists" }],
+      });
     }
 
     const hashedPass = await bcrypt.hash(password, 10);
@@ -99,12 +111,20 @@ export const createEmployee = async (req, res) => {
 
   } catch (error) {
     if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map((e) => e.message);
+      // 🔧 Field path bhi bhejo, sirf message nahi — frontend isse setError() mein use karega
+      const errors = Object.entries(error.errors).map(([field, e]) => ({
+        field,
+        message: e.message,
+      }));
       return res.status(400).json({ success: false, message: "Validation failed", errors });
     }
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
-      return res.status(400).json({ success: false, message: `${field} already exists` });
+      return res.status(400).json({
+        success: false,
+        message: `${field} already exists`,
+        errors: [{ field, message: `${field} already exists` }],
+      });
     }
     return res.status(500).json({
       success: false,
@@ -126,11 +146,19 @@ export const updateEmployee = async (req, res) => {
 
     const existingCode = await Employee.findOne({ employeeCode, isDeleted: false, _id: { $ne: id } });
     if (existingCode)
-      return res.status(400).json({ success: false, message: "Employee code already exists" });
+      return res.status(400).json({
+        success: false,
+        message: "Employee code already exists",
+        errors: [{ field: "employeeCode", message: "Employee code already exists" }],
+      });
 
     const existingEmail = await Employee.findOne({ email, isDeleted: false, _id: { $ne: id } });
     if (existingEmail)
-      return res.status(400).json({ success: false, message: "Email already exists" });
+      return res.status(400).json({
+        success: false,
+        message: "Email already exists",
+        errors: [{ field: "email", message: "Email already exists" }],
+      });
 
     const employee = await Employee.findById(id);
     if (!employee) return res.status(404).json({ error: "Employee Not Found" });
@@ -151,7 +179,7 @@ export const updateEmployee = async (req, res) => {
       employeeStatus: employeeStatus || "ACTIVE",
       bio: bio || "",
       profilePhoto,   // ✅
-    });
+    }, { runValidators: true });
 
     const userUpdate = { email };
     if (role) userUpdate.role = role;
@@ -161,12 +189,19 @@ export const updateEmployee = async (req, res) => {
     return res.json({ success: true });
   } catch (error) {
     if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map((e) => e.message);
+      const errors = Object.entries(error.errors).map(([field, e]) => ({
+        field,
+        message: e.message,
+      }));
       return res.status(400).json({ success: false, message: "Validation failed", errors });
     }
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
-      return res.status(400).json({ success: false, message: `${field} already exists` });
+      return res.status(400).json({
+        success: false,
+        message: `${field} already exists`,
+        errors: [{ field, message: `${field} already exists` }],
+      });
     }
     return res.status(500).json({ success: false, message: "Failed to update employee", error: error.message });
   }
