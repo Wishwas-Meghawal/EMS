@@ -7,18 +7,16 @@ import Employee from "../models/Employee.js";
 
 
 // POST / api/attendance
+// attendanceController.js
+
 export const clockOut = async (req, res) => {
   try {
     const session = req.session;
 
-    const employee = await Employee.findOne({
-      userId: session.userId,
-    });
+    const employee = await Employee.findOne({ userId: session.userId });
 
     if (!employee) {
-      return res.status(404).json({
-        error: "Employee not found",
-      });
+      return res.status(404).json({ error: "Employee not found" });
     }
 
     if (employee.isDeleted) {
@@ -27,92 +25,71 @@ export const clockOut = async (req, res) => {
       });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+
+    // ✅ Build a UTC-safe date range for "today"
+    const startOfDay = new Date(
+      Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+    );
+    const endOfDay = new Date(
+      Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+    );
 
     const existing = await Attendance.findOne({
       employeeId: employee._id,
-      date: today,
-    })
-
-    const now = new Date();
+      date: { $gte: startOfDay, $lte: endOfDay }, // ✅ range query, not exact match
+    });
 
     if (!existing) {
-      const isLate =
-        now.getHours() >= 9 &&
-        now.getMinutes() > 0;
+      // ── CLOCK IN ──
+      const isLate = now.getHours() > 9 || (now.getHours() === 9 && now.getMinutes() > 0);
 
       const attendance = await Attendance.create({
         employeeId: employee._id,
-        date: today,
+        date: startOfDay,   // ✅ always store normalized midnight UTC
         checkIn: now,
         status: isLate ? "LATE" : "PRESENT",
       });
 
       await inngest.send({
         name: "employee/check-out",
-        data:{
+        data: {
           employeeId: employee._id,
           attendanceId: attendance._id,
-        }
-      })
-
-      return res.json({
-        success: true, type: "CHECK_IN",
-        data: attendance
+        },
       });
+
+      return res.json({ success: true, type: "CHECK_IN", data: attendance });
+
     } else if (!existing.checkOut) {
-      const checkInTime = new Date(
-        existing.checkIn
-      ).getTime();
+      // ── CLOCK OUT ──
+      const diffMs = now.getTime() - new Date(existing.checkIn).getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+      const workingHours = parseFloat(diffHours.toFixed(2));
 
-      const diffMs =
-        now.getTime() - checkInTime;
-
-      const diffHours =
-        diffMs / (1000 * 60 * 60);
+      let dayType;
+      if (workingHours >= 8) dayType = "Full Day";
+      else if (workingHours >= 6) dayType = "Three Quarter Day";
+      else if (workingHours >= 4) dayType = "Half Day";
+      else dayType = "Short Day";
 
       existing.checkOut = now;
-
-      // Compute working hours and day type
-      const workingHours = parseFloat(
-        diffHours.toFixed(2)
-      );
-
-      let dayType = "Half Day";
-
-      if (workingHours >= 8) {
-        dayType = "Full Day";
-      } else if (workingHours >= 6) {
-        dayType = "Three Quarter Day";
-      } else if (workingHours >= 4) {
-        dayType = "Half Day";
-      } else {
-        dayType = "Short Day";
-      }
       existing.workingHours = workingHours;
       existing.dayType = dayType;
-
       await existing.save();
-      return res.json({
-        success: true,
-        type: "CHECK_OUT",
-        data: existing
-      });
+
+      return res.json({ success: true, type: "CHECK_OUT", data: existing });
+
     } else {
-      return res.json({
-        success: true,
-        type: "CHECK_OUT",
-        data: existing
-      });
+      // Already clocked out
+      return res.json({ success: true, type: "CHECK_OUT", data: existing });
     }
+
   } catch (error) {
     console.error("Attendance Error:", error);
-    return res.status(500).json({
-      error: "Operation failed"
-    });
+    return res.status(500).json({ error: "Operation failed" });
   }
-}
+};
 
 
 //Get attendance for employee
