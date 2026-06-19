@@ -46,7 +46,7 @@ const Employees = () => {
   }, [fetchEmployees]);
 
   const filtered = employees.filter((emp) =>
-    `${emp.employeeName} ${emp.position}`.toLowerCase().includes(search.toLowerCase())
+    `${emp.employeeName} ${emp.position} ${emp.employeeCode}`.toLowerCase().includes(search.toLowerCase())
   );
 
   // ── Export PDF ────────────────────────────────────────────
@@ -175,7 +175,7 @@ const Employees = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search employees by name or role..."
+              placeholder="Search by name, role, or employee code..."
               className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg
                          focus:ring-2 focus:ring-purple-500 focus:border-transparent
                          transition-all duration-200 text-gray-700 placeholder-gray-400"

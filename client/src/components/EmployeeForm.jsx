@@ -2,13 +2,37 @@ import React, { useRef, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2Icon, Plus, X, Upload } from "lucide-react";
+import {
+  Loader2Icon,
+  Plus,
+  X,
+  Upload,
+  User,
+  KeyRound,
+  Briefcase,
+  Wallet,
+  FileText,
+  Camera,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import api from "../api/axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const DEPARTMENTS = ["Engineering", "HR", "Finance", "Marketing", "Sales"];
+
+// Backend ke server/constants/department.js se exactly match karta hai
+const DEPARTMENTS = [
+  "Engineering",
+  "Human Resources",
+  "Marketing",
+  "Sales",
+  "Finance",
+  "Operations",
+  "IT Support",
+  "Customer Success",
+  "Product Management",
+  "Design",
+];
 
 // ==========================================
 // 🛡️ ZOD RUNTIME VALIDATION SCHEMA
@@ -106,6 +130,14 @@ const createValidationSchema = (isEditMode) => {
   });
 };
 
+// Reusable section header — matches the "Public Profile" header style used elsewhere in the app
+const SectionHeader = ({ icon: Icon, title }) => (
+  <h3 className="text-base font-medium text-slate-900 mb-5 pb-3 border-b border-slate-100 flex items-center gap-2">
+    <Icon className="w-5 h-5 text-slate-400" />
+    {title}
+  </h3>
+);
+
 const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -126,6 +158,7 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
     register,
     handleSubmit,
     setValue,
+    setError,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -213,11 +246,24 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
         onSuccess ? onSuccess() : navigate("/employee");
       }
     } catch (error) {
-      toast.error(
-        error.response?.data?.error || 
-        error.response?.data?.message || 
-        "Something went wrong processing your request."
-      );
+      const backendErrors = error.response?.data?.errors;
+
+      if (Array.isArray(backendErrors) && backendErrors.length > 0) {
+        // Backend ne field-wise errors bheje hain — har ek ko uske input ke
+        // neeche dikhao, generic toast ki jagah
+        backendErrors.forEach((err) => {
+          if (err.field) {
+            setError(err.field, { type: "server", message: err.message });
+          }
+        });
+        toast.error("Please fix the highlighted fields below");
+      } else {
+        toast.error(
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Something went wrong processing your request."
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -233,212 +279,234 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
 
   return (
     <form className="space-y-8" onSubmit={handleSubmit(onSubmitHandler)}>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-        
-        {/* Employee Name */}
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-slate-700">
-            Employee Name <span className="text-red-500">*</span>
-          </label>
-          <input type="text" {...register("employeeName")} className={getInputClasses("employeeName")} />
-          {errors.employeeName && <p className="text-xs text-red-500 mt-1">{errors.employeeName.message}</p>}
-        </div>
 
-        {/* Employee Code */}
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-slate-700">
-            Employee Code <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            placeholder="EMP001"
-            {...register("employeeCode")}
-            className={getInputClasses("employeeCode")}
-          />
-          {errors.employeeCode && <p className="text-xs text-red-500 mt-1">{errors.employeeCode.message}</p>}
-        </div>
-
-        {/* Email */}
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-slate-700">
-            Email Address <span className="text-red-500">*</span>
-          </label>
-          <input type="email" {...register("email")} className={getInputClasses("email")} />
-          {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
-        </div>
-
-        {/* Password */}
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-slate-700">
-            {isEditMode ? "Change Password" : "Temporary Password"} {!isEditMode && <span className="text-red-500">*</span>}
-          </label>
-          <input
-            type="password"
-            placeholder={isEditMode ? "Leave blank to keep current" : "••••••••"}
-            {...register("password")}
-            className={getInputClasses("password")}
-          />
-          {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
-        </div>
-
-        {/* Role */}
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-slate-700">System Role</label>
-          <select {...register("role")} className={getInputClasses("role")}>
-            <option value="EMPLOYEE">Employee</option>
-            <option value="ADMIN">Admin</option>
-          </select>
-          {errors.role && <p className="text-xs text-red-500 mt-1">{errors.role.message}</p>}
-        </div>
-
-        {/* Phone */}
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-slate-700">
-            Mobile Number <span className="text-red-500">*</span>
-          </label>
-          <input type="tel" placeholder="9876543210" {...register("phone")} className={getInputClasses("phone")} />
-          {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>}
-        </div>
-
-        {/* Department */}
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-slate-700">
-            Department <span className="text-red-500">*</span>
-          </label>
-          <select {...register("department")} className={getInputClasses("department")}>
-            <option value="">Select Department</option>
-            {DEPARTMENTS.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-          {errors.department && <p className="text-xs text-red-500 mt-1">{errors.department.message}</p>}
-        </div>
-
-        {/* Position */}
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-slate-700">
-            Designation <span className="text-red-500">*</span>
-          </label>
-          <input type="text" {...register("position")} className={getInputClasses("position")} />
-          {errors.position && <p className="text-xs text-red-500 mt-1">{errors.position.message}</p>}
-        </div>
-
-        {/* Join Date */}
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-slate-700">
-            Date of Joining <span className="text-red-500">*</span>
-          </label>
-          <input type="date" {...register("joinDate")} className={getInputClasses("joinDate")} />
-          {errors.joinDate && <p className="text-xs text-red-500 mt-1">{errors.joinDate.message}</p>}
-        </div>
-
-        {/* Salary */}
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-slate-700">Basic Salary <span className="text-red-500">*</span></label>
-          <div className="relative">
-            <span className="absolute inset-y-0 left-3 flex items-center text-slate-500 font-medium">₹</span>
-            <input type="number" {...register("basicSalary")} className={`${getInputClasses("basicSalary")} pl-8`} />
-          </div>
-          {errors.basicSalary && <p className="text-xs text-red-500 mt-1">{errors.basicSalary.message}</p>}
-        </div>
-
-        {/* Allowances */}
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-slate-700">Allowances</label>
-          <div className="relative">
-            <span className="absolute inset-y-0 left-3 flex items-center text-slate-500 font-medium">₹</span>
-            <input type="number" {...register("allowances")} className={`${getInputClasses("allowances")} pl-8`} />
-          </div>
-          {errors.allowances && <p className="text-xs text-red-500 mt-1">{errors.allowances.message}</p>}
-        </div>
-
-        {/* Deductions */}
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-slate-700">Deductions</label>
-          <div className="relative">
-            <span className="absolute inset-y-0 left-3 flex items-center text-slate-500 font-medium">₹</span>
-            <input type="number" {...register("deductions")} className={`${getInputClasses("deductions")} pl-8`} />
-          </div>
-          {errors.deductions && <p className="text-xs text-red-500 mt-1">{errors.deductions.message}</p>}
-        </div>
-
-        {/* Status — edit mode only */}
-        {isEditMode && (
+      {/* ===================== Basic Details ===================== */}
+      <div>
+        <SectionHeader icon={User} title="Basic Details" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+          {/* Employee Name */}
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-slate-700">Status</label>
-            <select {...register("employeeStatus")} className={getInputClasses("employeeStatus")}>
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="INACTIVE">INACTIVE</option>
-            </select>
-            {errors.employeeStatus && <p className="text-xs text-red-500 mt-1">{errors.employeeStatus.message}</p>}
+            <label className="block text-sm font-medium text-slate-700">
+              Employee Name <span className="text-red-500">*</span>
+            </label>
+            <input type="text" {...register("employeeName")} className={getInputClasses("employeeName")} />
+            {errors.employeeName && <p className="text-xs text-red-500 mt-1">{errors.employeeName.message}</p>}
           </div>
-        )}
 
-        {/* Bio Description */}
-        <div className="md:col-span-2 space-y-1.5">
-          <label className="block text-sm font-medium text-slate-700">Bio Statement</label>
-          <textarea
-            rows={3}
-            {...register("bio")}
-            placeholder="Tell us a bit about professional backgrounds..."
-            className={getInputClasses("bio")}
-          />
-          {errors.bio && <p className="text-xs text-red-500 mt-1">{errors.bio.message}</p>}
+          {/* Employee Code */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-slate-700">
+              Employee Code <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="EMP001"
+              {...register("employeeCode")}
+              className={getInputClasses("employeeCode")}
+            />
+            {errors.employeeCode && <p className="text-xs text-red-500 mt-1">{errors.employeeCode.message}</p>}
+          </div>
+
+          {/* Email */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-slate-700">
+              Email Address <span className="text-red-500">*</span>
+            </label>
+            <input type="email" {...register("email")} className={getInputClasses("email")} />
+            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
+          </div>
+
+          {/* Phone */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-slate-700">
+              Mobile Number <span className="text-red-500">*</span>
+            </label>
+            <input type="tel" placeholder="9876543210" {...register("phone")} className={getInputClasses("phone")} />
+            {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone.message}</p>}
+          </div>
         </div>
+      </div>
 
-        {/* Profile Photo File Field Block */}
-        <div className="md:col-span-2 space-y-3">
-          <label className="block text-sm font-medium text-slate-700">Profile Photo</label>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/jpg,image/png"
-            onChange={handlePhotoChange}
-            className="hidden"
-          />
+      {/* ===================== Credentials & Access ===================== */}
+      <div>
+        <SectionHeader icon={KeyRound} title="Credentials & Access" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+          {/* Password */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-slate-700">
+              {isEditMode ? "Change Password" : "Password"} {!isEditMode && <span className="text-red-500">*</span>}
+            </label>
+            <input
+              type="password"
+              placeholder={isEditMode ? "Leave blank to keep current" : "••••••••"}
+              {...register("password")}
+              className={getInputClasses("password")}
+            />
+            {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
+          </div>
 
-          {!photoPreview ? (
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center gap-2 px-6 py-8 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50/30 hover:bg-indigo-50/40 hover:border-indigo-400 transition-all cursor-pointer group"
-            >
-              <div className="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center transition-colors">
-                <Upload className="w-5 h-5 text-slate-400 group-hover:text-indigo-500" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-indigo-600">Click to upload photo</p>
-                <p className="text-xs text-slate-400 mt-0.5">JPG, JPEG, PNG — max 5MB</p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-4 p-4 border border-slate-200 rounded-xl bg-slate-50/50">
-              <div className="relative w-16 h-16 shrink-0 rounded-full overflow-hidden ring-2 ring-purple-200 shadow-sm">
-                <img src={photoPreview} alt="Profile preview" className="w-full h-full object-cover" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-700 truncate">{photoFile?.name || "Current image file"}</p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {photoFile ? `${(photoFile.size / 1024).toFixed(1)} KB` : "Stored File Server Asset"}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-xs text-indigo-500 hover:text-indigo-700 mt-1 underline"
-                >
-                  Change photo
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={removePhoto}
-                className="p-1.5 rounded-full bg-white border border-slate-200 text-slate-400 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all"
-              >
-                <X className="w-4 h-4" />
-              </button>
+          {/* Role */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-slate-700">System Role</label>
+            <select {...register("role")} className={getInputClasses("role")}>
+              <option value="EMPLOYEE">Employee</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+            {errors.role && <p className="text-xs text-red-500 mt-1">{errors.role.message}</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* ===================== Job Details ===================== */}
+      <div>
+        <SectionHeader icon={Briefcase} title="Job Details" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+          {/* Department */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-slate-700">
+              Department <span className="text-red-500">*</span>
+            </label>
+            <select {...register("department")} className={getInputClasses("department")}>
+              <option value="">Select Department</option>
+              {DEPARTMENTS.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+            {errors.department && <p className="text-xs text-red-500 mt-1">{errors.department.message}</p>}
+          </div>
+
+          {/* Position */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-slate-700">
+              Designation <span className="text-red-500">*</span>
+            </label>
+            <input type="text" {...register("position")} className={getInputClasses("position")} />
+            {errors.position && <p className="text-xs text-red-500 mt-1">{errors.position.message}</p>}
+          </div>
+
+          {/* Join Date */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-slate-700">
+              Date of Joining <span className="text-red-500">*</span>
+            </label>
+            <input type="date" {...register("joinDate")} className={getInputClasses("joinDate")} />
+            {errors.joinDate && <p className="text-xs text-red-500 mt-1">{errors.joinDate.message}</p>}
+          </div>
+
+          {/* Status — edit mode only */}
+          {isEditMode && (
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-slate-700">Status</label>
+              <select {...register("employeeStatus")} className={getInputClasses("employeeStatus")}>
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="INACTIVE">INACTIVE</option>
+              </select>
+              {errors.employeeStatus && <p className="text-xs text-red-500 mt-1">{errors.employeeStatus.message}</p>}
             </div>
           )}
-          {photoError && <p className="text-xs text-red-500 flex items-center gap-1 mt-1"><X className="w-3 h-3" /> {photoError}</p>}
         </div>
+      </div>
+
+      {/* ===================== Compensation ===================== */}
+      <div>
+        <SectionHeader icon={Wallet} title="Compensation" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
+          {/* Salary */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-slate-700">Basic Salary <span className="text-red-500">*</span></label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-3 flex items-center text-slate-500 font-medium">₹</span>
+              <input type="number" {...register("basicSalary")} className={`${getInputClasses("basicSalary")} pl-8`} />
+            </div>
+            {errors.basicSalary && <p className="text-xs text-red-500 mt-1">{errors.basicSalary.message}</p>}
+          </div>
+
+          {/* Allowances */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-slate-700">Allowances</label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-3 flex items-center text-slate-500 font-medium">₹</span>
+              <input type="number" {...register("allowances")} className={`${getInputClasses("allowances")} pl-8`} />
+            </div>
+            {errors.allowances && <p className="text-xs text-red-500 mt-1">{errors.allowances.message}</p>}
+          </div>
+
+          {/* Deductions */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-slate-700">Deductions</label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-3 flex items-center text-slate-500 font-medium">₹</span>
+              <input type="number" {...register("deductions")} className={`${getInputClasses("deductions")} pl-8`} />
+            </div>
+            {errors.deductions && <p className="text-xs text-red-500 mt-1">{errors.deductions.message}</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* ===================== Bio Statement ===================== */}
+      <div>
+        <SectionHeader icon={FileText} title="Bio Statement" />
+        <textarea
+          rows={3}
+          {...register("bio")}
+          placeholder="Tell us a bit about professional backgrounds..."
+          className={getInputClasses("bio")}
+        />
+        {errors.bio && <p className="text-xs text-red-500 mt-1">{errors.bio.message}</p>}
+      </div>
+
+      {/* ===================== Profile Photo ===================== */}
+      <div>
+        <SectionHeader icon={Camera} title="Profile Photo" />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png"
+          onChange={handlePhotoChange}
+          className="hidden"
+        />
+
+        {!photoPreview ? (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-col items-center justify-center gap-2 px-6 py-8 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50/30 hover:bg-indigo-50/40 hover:border-indigo-400 transition-all cursor-pointer group"
+          >
+            <div className="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-indigo-100 flex items-center justify-center transition-colors">
+              <Upload className="w-5 h-5 text-slate-400 group-hover:text-indigo-500" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium text-indigo-600">Click to upload photo</p>
+              <p className="text-xs text-slate-400 mt-0.5">JPG, JPEG, PNG — max 5MB</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-4 p-4 border border-slate-200 rounded-xl bg-slate-50/50">
+            <div className="relative w-16 h-16 shrink-0 rounded-full overflow-hidden ring-2 ring-purple-200 shadow-sm">
+              <img src={photoPreview} alt="Profile preview" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-700 truncate">{photoFile?.name || "Current image file"}</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {photoFile ? `${(photoFile.size / 1024).toFixed(1)} KB` : "Stored File Server Asset"}
+              </p>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-xs text-indigo-500 hover:text-indigo-700 mt-1 underline"
+              >
+                Change photo
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={removePhoto}
+              className="p-1.5 rounded-full bg-white border border-slate-200 text-slate-400 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+        {photoError && <p className="text-xs text-red-500 flex items-center gap-1 mt-1"><X className="w-3 h-3" /> {photoError}</p>}
       </div>
 
       {/* Form CTA Actions */}

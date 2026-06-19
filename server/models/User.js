@@ -17,7 +17,11 @@ const userSchema = new mongoose.Schema(
         "ADMIN",
         "EMPLOYEE"
       ],default: "EMPLOYEE"
-    }, 
+    },
+    bio: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
