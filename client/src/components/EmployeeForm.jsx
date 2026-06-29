@@ -20,7 +20,6 @@ import api from "../api/axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// Backend ke server/constants/department.js se exactly match karta hai
 const DEPARTMENTS = [
   "Engineering",
   "Human Resources",
@@ -34,9 +33,6 @@ const DEPARTMENTS = [
   "Design",
 ];
 
-// ==========================================
-// 🛡️ ZOD RUNTIME VALIDATION SCHEMA
-// ==========================================
 const createValidationSchema = (isEditMode) => {
   return z.object({
     employeeName: z
@@ -45,7 +41,7 @@ const createValidationSchema = (isEditMode) => {
       .transform((val) => val.trim())
       .refine((val) => val.length >= 3 && val.length <= 50, "Name must be between 3 and 50 characters")
       .refine((val) => /^[a-zA-Z\s]+$/.test(val), "Only alphabets and spaces are allowed"),
-    
+
     employeeCode: z
       .string()
       .min(1, "Employee Code is required")
@@ -67,9 +63,10 @@ const createValidationSchema = (isEditMode) => {
           .refine(
             (val) =>
               !val ||
-              (/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/.test(val)),
+              /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/.test(val),
             {
-              message: "Password must be 8-20 characters and contain an uppercase, lowercase, number, and special character",
+              message:
+                "Password must be 8-20 characters and contain an uppercase, lowercase, number, and special character",
             }
           )
       : z
@@ -83,54 +80,58 @@ const createValidationSchema = (isEditMode) => {
           ),
 
     role: z.enum(["ADMIN", "EMPLOYEE"]),
-    
+
     phone: z
       .string()
       .min(1, "Mobile Number is required")
       .regex(/^\d{10}$/, "Mobile number must be exactly 10 digits containing numbers only"),
-    
+
     department: z.enum(DEPARTMENTS, {
       errorMap: () => ({ message: "Please select a valid department" }),
     }),
-    
+
     position: z
       .string()
       .min(1, "Designation is required")
       .min(3, "Designation must be at least 3 characters")
       .max(50, "Designation cannot exceed 50 characters"),
-    
+
     joinDate: z
       .string()
       .min(1, "Date of joining is required")
       .refine((val) => {
         const inputDate = new Date(val);
         const today = new Date();
-        today.setHours(23, 59, 59, 999); // Allow registration up to today midnight
+        today.setHours(23, 59, 59, 999);
         return inputDate <= today;
       }, "Join date cannot be a future date"),
-    
-    basicSalary: z
-      .preprocess((val) => Number(val), z.number().min(0, "Salary cannot be negative")),
-    
+
+    // ✅ min(0) — negative values reject honge
+    basicSalary: z.preprocess(
+      (val) => Number(val),
+      z.number().min(0, "Salary cannot be negative")
+    ),
+
     allowances: z
-      .preprocess((val) => (val === "" ? 0 : Number(val)), z.number().min(0, "Allowances cannot be negative"))
+      .preprocess(
+        (val) => (val === "" ? 0 : Number(val)),
+        z.number().min(0, "Allowances cannot be negative")
+      )
       .default(0),
-    
+
     deductions: z
-      .preprocess((val) => (val === "" ? 0 : Number(val)), z.number().min(0, "Deductions cannot be negative"))
+      .preprocess(
+        (val) => (val === "" ? 0 : Number(val)),
+        z.number().min(0, "Deductions cannot be negative")
+      )
       .default(0),
-    
-    bio: z
-      .string()
-      .max(500, "Bio cannot exceed 500 characters")
-      .optional()
-      .default(""),
-    
+
+    bio: z.string().max(500, "Bio cannot exceed 500 characters").optional().default(""),
+
     employeeStatus: z.enum(["ACTIVE", "INACTIVE"]).default("ACTIVE"),
   });
 };
 
-// Reusable section header — matches the "Public Profile" header style used elsewhere in the app
 const SectionHeader = ({ icon: Icon, title }) => (
   <h3 className="text-base font-medium text-slate-900 mb-5 pb-3 border-b border-slate-100 flex items-center gap-2">
     <Icon className="w-5 h-5 text-slate-400" />
@@ -138,12 +139,18 @@ const SectionHeader = ({ icon: Icon, title }) => (
   </h3>
 );
 
+// ✅ Minus key aur 'e' (exponential) block karne wala helper
+const blockNegativeKeys = (e) => {
+  if (e.key === "-" || e.key === "e" || e.key === "E" || e.key === "+") {
+    e.preventDefault();
+  }
+};
+
 const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const isEditMode = !!initialData;
 
-  // 📝 Manage profile picture states manually
   const fileInputRef = useRef(null);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(
@@ -153,7 +160,6 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
 
   const schema = createValidationSchema(isEditMode);
 
-  // Initialize React Hook Form
   const {
     register,
     handleSubmit,
@@ -172,7 +178,6 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
     },
   });
 
-  // Hydrate form defaults if structural properties exist (e.g., Dates)
   useEffect(() => {
     if (initialData) {
       if (initialData.joinDate) {
@@ -187,7 +192,6 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
     }
   }, [initialData, setValue]);
 
-  // Handle Photo File Validations
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     setPhotoError("");
@@ -216,23 +220,16 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // On Valid Submission
   const onSubmitHandler = async (data) => {
     setLoading(true);
     try {
       const formData = new FormData();
-      
-      // Map all text data fields down into multi-part form payloads
       Object.keys(data).forEach((key) => {
         if (data[key] !== undefined && data[key] !== null) {
           formData.append(key, data[key]);
         }
       });
-
-      // Append verified files safely
-      if (photoFile) {
-        formData.append("profilePhoto", photoFile);
-      }
+      if (photoFile) formData.append("profilePhoto", photoFile);
 
       const url = isEditMode ? `/employee/${initialData._id}` : "/employee";
       const method = isEditMode ? "put" : "post";
@@ -247,21 +244,16 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
       }
     } catch (error) {
       const backendErrors = error.response?.data?.errors;
-
       if (Array.isArray(backendErrors) && backendErrors.length > 0) {
-        // Backend ne field-wise errors bheje hain — har ek ko uske input ke
-        // neeche dikhao, generic toast ki jagah
         backendErrors.forEach((err) => {
-          if (err.field) {
-            setError(err.field, { type: "server", message: err.message });
-          }
+          if (err.field) setError(err.field, { type: "server", message: err.message });
         });
         toast.error("Please fix the highlighted fields below");
       } else {
         toast.error(
           error.response?.data?.error ||
-          error.response?.data?.message ||
-          "Something went wrong processing your request."
+            error.response?.data?.message ||
+            "Something went wrong processing your request."
         );
       }
     } finally {
@@ -269,7 +261,6 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
     }
   };
 
-  // CSS Style helpers to dynamically build conditional UI borders
   const getInputClasses = (fieldName) => `
     w-full px-4 py-2.5 rounded-xl border bg-white shadow-sm
     focus:ring-2 focus:ring-purple-500 focus:border-transparent
@@ -280,11 +271,10 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
   return (
     <form className="space-y-8" onSubmit={handleSubmit(onSubmitHandler)}>
 
-      {/* ===================== Basic Details ===================== */}
+      {/* Basic Details */}
       <div>
         <SectionHeader icon={User} title="Basic Details" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-          {/* Employee Name */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700">
               Employee Name <span className="text-red-500">*</span>
@@ -293,21 +283,14 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
             {errors.employeeName && <p className="text-xs text-red-500 mt-1">{errors.employeeName.message}</p>}
           </div>
 
-          {/* Employee Code */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700">
               Employee Code <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              placeholder="EMP001"
-              {...register("employeeCode")}
-              className={getInputClasses("employeeCode")}
-            />
+            <input type="text" placeholder="EMP001" {...register("employeeCode")} className={getInputClasses("employeeCode")} />
             {errors.employeeCode && <p className="text-xs text-red-500 mt-1">{errors.employeeCode.message}</p>}
           </div>
 
-          {/* Email */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700">
               Email Address <span className="text-red-500">*</span>
@@ -316,7 +299,6 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
             {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
           </div>
 
-          {/* Phone */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700">
               Mobile Number <span className="text-red-500">*</span>
@@ -327,14 +309,14 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
         </div>
       </div>
 
-      {/* ===================== Credentials & Access ===================== */}
+      {/* Credentials & Access */}
       <div>
         <SectionHeader icon={KeyRound} title="Credentials & Access" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-          {/* Password */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700">
-              {isEditMode ? "Change Password" : "Password"} {!isEditMode && <span className="text-red-500">*</span>}
+              {isEditMode ? "Change Password" : "Password"}{" "}
+              {!isEditMode && <span className="text-red-500">*</span>}
             </label>
             <input
               type="password"
@@ -345,7 +327,6 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
             {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
           </div>
 
-          {/* Role */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700">System Role</label>
             <select {...register("role")} className={getInputClasses("role")}>
@@ -357,25 +338,21 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
         </div>
       </div>
 
-      {/* ===================== Job Details ===================== */}
+      {/* Job Details */}
       <div>
         <SectionHeader icon={Briefcase} title="Job Details" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-          {/* Department */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700">
               Department <span className="text-red-500">*</span>
             </label>
             <select {...register("department")} className={getInputClasses("department")}>
               <option value="">Select Department</option>
-              {DEPARTMENTS.map((d) => (
-                <option key={d} value={d}>{d}</option>
-              ))}
+              {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
             {errors.department && <p className="text-xs text-red-500 mt-1">{errors.department.message}</p>}
           </div>
 
-          {/* Position */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700">
               Designation <span className="text-red-500">*</span>
@@ -384,7 +361,6 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
             {errors.position && <p className="text-xs text-red-500 mt-1">{errors.position.message}</p>}
           </div>
 
-          {/* Join Date */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700">
               Date of Joining <span className="text-red-500">*</span>
@@ -393,7 +369,6 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
             {errors.joinDate && <p className="text-xs text-red-500 mt-1">{errors.joinDate.message}</p>}
           </div>
 
-          {/* Status — edit mode only */}
           {isEditMode && (
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-slate-700">Status</label>
@@ -411,12 +386,21 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
       <div>
         <SectionHeader icon={Wallet} title="Compensation" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
-          {/* Salary */}
+
+          {/* Basic Salary */}
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-slate-700">Basic Salary <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-slate-700">
+              Basic Salary <span className="text-red-500">*</span>
+            </label>
             <div className="relative">
               <span className="absolute inset-y-0 left-3 flex items-center text-slate-500 font-medium">₹</span>
-              <input type="number" {...register("basicSalary")} className={`${getInputClasses("basicSalary")} pl-8`} />
+              <input
+                type="number"
+                min="0"
+                onKeyDown={blockNegativeKeys}
+                {...register("basicSalary")}
+                className={`${getInputClasses("basicSalary")} pl-8`}
+              />
             </div>
             {errors.basicSalary && <p className="text-xs text-red-500 mt-1">{errors.basicSalary.message}</p>}
           </div>
@@ -426,7 +410,13 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
             <label className="block text-sm font-medium text-slate-700">Allowances</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-3 flex items-center text-slate-500 font-medium">₹</span>
-              <input type="number" {...register("allowances")} className={`${getInputClasses("allowances")} pl-8`} />
+              <input
+                type="number"
+                min="0"
+                onKeyDown={blockNegativeKeys}
+                {...register("allowances")}
+                className={`${getInputClasses("allowances")} pl-8`}
+              />
             </div>
             {errors.allowances && <p className="text-xs text-red-500 mt-1">{errors.allowances.message}</p>}
           </div>
@@ -436,14 +426,20 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
             <label className="block text-sm font-medium text-slate-700">Deductions</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-3 flex items-center text-slate-500 font-medium">₹</span>
-              <input type="number" {...register("deductions")} className={`${getInputClasses("deductions")} pl-8`} />
+              <input
+                type="number"
+                min="0"
+                onKeyDown={blockNegativeKeys}
+                {...register("deductions")}
+                className={`${getInputClasses("deductions")} pl-8`}
+              />
             </div>
             {errors.deductions && <p className="text-xs text-red-500 mt-1">{errors.deductions.message}</p>}
           </div>
         </div>
       </div>
 
-      {/* ===================== Bio Statement ===================== */}
+      {/* Bio Statement */}
       <div>
         <SectionHeader icon={FileText} title="Bio Statement" />
         <textarea
@@ -455,7 +451,7 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
         {errors.bio && <p className="text-xs text-red-500 mt-1">{errors.bio.message}</p>}
       </div>
 
-      {/* ===================== Profile Photo ===================== */}
+      {/* Profile Photo */}
       <div>
         <SectionHeader icon={Camera} title="Profile Photo" />
         <input
@@ -465,7 +461,6 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
           onChange={handlePhotoChange}
           className="hidden"
         />
-
         {!photoPreview ? (
           <div
             onClick={() => fileInputRef.current?.click()}
@@ -506,7 +501,11 @@ const EmployeeForm = ({ initialData, onSuccess, onCancle }) => {
             </button>
           </div>
         )}
-        {photoError && <p className="text-xs text-red-500 flex items-center gap-1 mt-1"><X className="w-3 h-3" /> {photoError}</p>}
+        {photoError && (
+          <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
+            <X className="w-3 h-3" /> {photoError}
+          </p>
+        )}
       </div>
 
       {/* Form CTA Actions */}
