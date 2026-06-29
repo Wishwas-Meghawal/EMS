@@ -53,20 +53,22 @@ const Employees = () => {
   const handleExportPDF = async () => {
     setExporting(true);
     try {
-      // Always fetch fresh full list for export (ignores current dept filter)
-      const res = await api.get("/employee");
-      const allEmployees = res.data;
+      // ✅ FIX: Respect the currently selected department filter
+      const url = selectedDept ? `/employee?department=${selectedDept}` : "/employee";
+      const res = await api.get(url);
+      const exportList = res.data;
 
-      if (!allEmployees?.length) {
+      if (!exportList?.length) {
         toast("No employees found to export.", { icon: "ℹ️" });
         return;
       }
 
-      const result = await exportEmployeesPDF(allEmployees, API_URL);
+      const result = await exportEmployeesPDF(exportList, API_URL);
       if (result === "empty") {
         toast("No employees found to export.", { icon: "ℹ️" });
       } else {
-        toast.success("Employee report exported successfully!");
+        const label = selectedDept ? `${selectedDept} department` : "all departments";
+        toast.success(`Exported ${exportList.length} employee(s) from ${label}!`);
       }
     } catch (err) {
       console.error(err);
@@ -80,15 +82,17 @@ const Employees = () => {
   const handlePrint = async () => {
     setPrinting(true);
     try {
-      const res = await api.get("/employee");
-      const allEmployees = res.data;
+      // ✅ FIX: Respect the currently selected department filter
+      const url = selectedDept ? `/employee?department=${selectedDept}` : "/employee";
+      const res = await api.get(url);
+      const printList = res.data;
 
-      if (!allEmployees?.length) {
+      if (!printList?.length) {
         toast("No employees found to print.", { icon: "ℹ️" });
         return;
       }
 
-      const result = printEmployees(allEmployees, API_URL);
+      const result = printEmployees(printList, API_URL);
       if (result === "empty") {
         toast("No employees found.", { icon: "ℹ️" });
       }
@@ -126,14 +130,18 @@ const Employees = () => {
                          bg-white text-purple-700 font-semibold text-sm shadow-sm
                          hover:bg-purple-50 hover:border-purple-400 hover:shadow-md
                          transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-              title="Export all employees to PDF"
+              title={selectedDept ? `Export ${selectedDept} employees to PDF` : "Export all employees to PDF"}
             >
               {exporting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <FileDown className="w-4 h-4" />
               )}
-              {exporting ? "Exporting…" : "Export PDF"}
+              {exporting
+                ? "Exporting…"
+                : selectedDept
+                ? `Export ${selectedDept}`
+                : "Export PDF"}
             </button>
 
             {/* Print */}
@@ -144,7 +152,7 @@ const Employees = () => {
                          bg-white text-slate-700 font-semibold text-sm shadow-sm
                          hover:bg-slate-50 hover:border-slate-400 hover:shadow-md
                          transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-              title="Print employee directory"
+              title={selectedDept ? `Print ${selectedDept} employees` : "Print employee directory"}
             >
               {printing ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
